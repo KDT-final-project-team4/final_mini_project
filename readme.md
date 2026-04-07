@@ -1,179 +1,221 @@
-# 🚀 CallFlow Mini (LangGraph 기반 멀티에이전트 상담 시스템)
+# 📌 CallFlow Mini – 팀원 공통 과제 안내 (LangGraph 기반)
 
 ---
 
-## 📌 프로젝트 개요
+## 🎯 이 과제의 목적
 
-이 프로젝트는 **AI 기반 상담 시스템(CallFlow)**의 축소판(mini version)을 구현한 것이다.
+이 과제는 기능을 만드는 것이 아니라,  
+다음 5가지를 직접 경험하면서 이해하는 것이 목표다.
 
-단순한 챗봇이 아니라 다음과 같은 구조를 가진다:
+- 멀티에이전트 구조가 왜 필요한지
+- LangGraph가 왜 필요한지
+- state 기반 흐름이 어떻게 작동하는지
+- agent와 tool의 역할 차이
+- 프론트가 있어도 백엔드 구조가 없으면 왜 의미가 없는지
 
-- 🔹 멀티에이전트 구조 (역할 분리)
-- 🔹 LangGraph 기반 흐름 제어
-- 🔹 상태(state) 기반 의사결정
-- 🔹 Tool 호출 구조
-- 🔹 Vision fallback (mock)
-
-👉 목표:  
-**“챗봇이 아니라 상담 시스템을 이해하는 것”**
+👉 한 줄 요약: **“챗봇이 아니라 상담 시스템을 직접 만들어보는 과제”**
 
 ---
 
-## 🧠 전체 구조
+## 📦 해야 할 일 (핵심)
+
+모든 팀원은 아래를 구현해야 한다.
+
+### 1. LangGraph 기반 백엔드 구현
+- Intent Router Node
+- Dialogue Manager Node
+- Tool Nodes
+- Response Node
+
+---
+
+### 2. 기존 프론트와 연결
+- 새 UI 만들지 않는다
+- 제공된 frontend 그대로 사용
+- `/chat` API 연결만 한다
+
+---
+
+### 3. 3가지 시나리오 동작시키기
+- FAQ
+- Callback (이름 → 전화번호)
+- Vision Trigger (mock)
+
+---
+
+## 🧠 전체 시스템 구조
 
 ```
 Frontend UI
     ↓
-POST /chat API
+POST /chat
     ↓
-FastAPI Backend
+FastAPI
     ↓
-LangGraph Flow
-    ├── Intent Router
-    ├── Dialogue Manager
-    ├── Tool Nodes
-    │     ├── FAQ
-    │     ├── Callback
-    │     └── Vision (mock)
-    └── Response Node
+LangGraph
+
+Intent Router
     ↓
-응답 반환
+Dialogue Manager
+    ↓
+조건 분기
+    ├── FAQ Tool
+    ├── Callback Tool
+    ├── Vision Trigger
+    ↓
+Response Node
 ```
 
 ---
 
-## 📦 폴더 구조
+## 📁 폴더 구조
 
 ```
 callflow-mini/
 │
 ├── backend/
-│   ├── main.py              # FastAPI 서버
+│   ├── main.py
 │   ├── requirements.txt
 │   │
 │   └── app/
-│       ├── graph.py         # LangGraph 정의
-│       ├── state.py         # 상태 정의
+│       ├── graph.py
+│       ├── state.py
 │       │
-│       ├── nodes/           # Agent 역할
-│       ├── tools/           # 실행 함수
-│       └── prompts/         # LLM 프롬프트
+│       ├── nodes/
+│       ├── tools/
+│       └── prompts/
 │
-├── frontend/
-│   └── (기존 UI 그대로 사용)
-│
-└── setup_project.py         # 프로젝트 자동 생성 스크립트
+└── frontend/
+    └── (이미 만들어진 UI 그대로 사용)
 ```
 
 ---
 
-## 🎯 핵심 개념
+## 🚨 가장 중요한 규칙
 
-### 1️⃣ Agent vs Tool
-
-| 구분 | 역할 |
-|------|------|
-| Agent (Node) | 판단 |
-| Tool | 실행 |
-
-👉 예:
-- Intent Router → 분류
-- Dialogue Manager → 다음 행동 결정
-- FAQ Tool → 실제 데이터 반환
+### ❌ 절대 하지 말 것
+- 프론트 새로 만들기
+- OCR 붙이기
+- 이미지 분석 구현
+- DB 연결
+- 인증 구현
+- 복잡하게 만들기
 
 ---
 
-### 2️⃣ State 기반 흐름
+### ✅ 반드시 할 것
+- LangGraph 사용
+- state 기반 흐름 구현
+- node / tool 역할 분리
+- 기존 프론트 연결
 
-모든 노드는 `state`를 공유한다.
+---
 
-예시:
+## 🧩 반드시 구현해야 하는 구성
 
-```
-{
-  "user_input": "운영시간 알려줘",
-  "intent": "faq",
-  "next_action": "call_faq",
-  "tool_result": "운영시간은 09:00~18:00 입니다."
+---
+
+### 1️⃣ State
+
+```python
+state = {
+  "user_input": "",
+  "intent": None,
+  "next_action": None,
+  "collected_name": None,
+  "collected_phone": None,
+  "tool_result": None,
+  "final_response": None
 }
 ```
 
-👉 핵심:
-- 노드는 state를 읽고 수정한다
-- 다음 노드는 수정된 state를 기반으로 동작한다
+---
+
+### 2️⃣ Intent Router Node
+
+입력 문장을 아래 3개 중 하나로 분류:
+
+- faq
+- callback
+- unknown
 
 ---
 
-## 🧩 구현된 기능
+### 3️⃣ Dialogue Manager Node
+
+현재 state를 보고 다음 행동 결정:
+
+- faq → FAQ Tool
+- callback → 이름/전화번호 수집
+- unknown → Vision Trigger
+
+---
+
+### 4️⃣ Tool
+
+#### FAQ Tool
+```
+운영시간 → 운영시간은 09:00~18:00 입니다
+```
+
+#### Callback Tool
+```
+홍길동 + 전화번호 → 콜백 등록 완료
+```
+
+#### Vision Tool (mock)
+```
+사진을 보내주세요
+```
+
+---
+
+### 5️⃣ Response Node
+
+최종 사용자 응답 생성
+
+---
+
+## 💬 반드시 동작해야 하는 시나리오
+
+---
 
 ### ✅ 1. FAQ
-- 질문 → 답변 반환
 
-예:
 ```
-운영시간 알려줘
-→ 운영시간은 09:00~18:00 입니다
+입력: 운영시간 알려줘
+출력: 운영시간은 09:00~18:00 입니다
 ```
 
 ---
 
-### ✅ 2. Callback (다단계 흐름)
+### ✅ 2. Callback
 
 ```
-상담원 연결해줘
-→ 이름 요청
-→ 전화번호 요청
+입력: 상담원 연결해줘
+→ 이름 입력 요청
+→ 전화번호 입력 요청
 → 콜백 등록 완료
 ```
 
 ---
 
-### ✅ 3. Vision Trigger (Fallback)
+### ✅ 3. Vision
 
 ```
-이거 이상해요
-→ 사진을 보내주세요 (mock)
-```
-
-👉 실제 Vision은 구현하지 않고 구조만 반영
-
----
-
-## ⚙️ 설치 및 실행
-
-### 1. 프로젝트 생성
-
-```
-python setup_project.py
+입력: 이거 이상해요
+출력: 사진을 보내주세요 (mock)
 ```
 
 ---
 
-### 2. 백엔드 실행
+## 🌐 프론트 연결 방법
 
-```
-cd callflow-mini/backend
-pip install -r requirements.txt
-uvicorn main:app --reload
-```
+프론트는 이미 만들어져 있음.
 
----
+👉 너가 해야 할 것:
 
-### 3. API 테스트
-
-```
-curl -X POST http://127.0.0.1:8000/chat \
--H "Content-Type: application/json" \
--d '{"message":"운영시간 알려줘"}'
-```
-
----
-
-### 4. 프론트 연결
-
-frontend 폴더는 기존 UI를 그대로 사용한다.
-
-JS에서 아래처럼 API 연결:
+### JS에서 API 호출
 
 ```
 fetch("http://localhost:8000/chat", {
@@ -187,45 +229,53 @@ fetch("http://localhost:8000/chat", {
 
 ---
 
-## 🚨 제한 사항
+## ⚙️ 실행 방법
 
-### ❌ 하지 말 것
-- 실제 OCR 구현
-- 실제 이미지 분석
-- DB 연결
-- 인증 시스템 구현
-- 프론트 재구성
+### 1. 프로젝트 생성
+```
+python setup_project.py
+```
 
-### ✅ 반드시 할 것
-- LangGraph 사용
-- state 기반 흐름
-- node / tool 분리
-- 기존 프론트 연동
-
----
-
-## 🧠 이 프로젝트의 핵심
-
-👉 이건 챗봇이 아니다
-
-👉 **상담 흐름을 가진 시스템이다**
+### 2. 백엔드 실행
+```
+cd backend
+pip install -r requirements.txt
+uvicorn main:app --reload
+```
 
 ---
 
-## 🔥 왜 중요한가
+## 🧠 과제 완료 기준
 
-이 구조를 이해하면:
+다음 질문에 답할 수 있으면 완료다:
 
-- 단순 GPT 호출 → ❌
-- 시스템 설계 → ⭕
+---
 
-즉,
+### 1. 왜 LangGraph를 썼는가?
+---
 
-👉 “LLM을 쓰는 개발자”에서  
-👉 “AI 시스템을 설계하는 개발자”로 넘어간다
+### 2. 왜 Intent Router가 필요한가?
+---
+
+### 3. 왜 Dialogue Manager가 따로 있는가?
+---
+
+### 4. 왜 Tool로 분리했는가?
+---
+
+### 5. 왜 Vision이 fallback인가?
+---
+
+## 🔥 가장 중요한 깨달음
+
+이 과제를 하고 나면 반드시 이 생각이 들어야 한다:
+
+- “아, LLM 하나로 다 하면 안 되는구나”
+- “상태를 보고 다음 행동을 결정해야 하는구나”
+- “그래서 이게 시스템이구나”
 
 ---
 
 ## 📌 최종 한 줄
 
-👉 **“UI는 껍데기고, LangGraph가 뇌다”**
+👉 **“우리는 챗봇을 만드는 게 아니라 상담 흐름을 만드는 것이다”**
