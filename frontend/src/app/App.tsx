@@ -69,7 +69,7 @@ export default function App() {
 
   const [lastNextAction, setLastNextAction] = useState<string | null>(null);
 
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null!);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -140,7 +140,7 @@ export default function App() {
               ? "faq"
               : data.intent === "callback"
               ? "callback"
-              : data.next_action === "trigger_vision"
+              : data.next_action === "route_vision"
               ? "vision"
               : "structured",
         },
@@ -149,7 +149,7 @@ export default function App() {
       setMessages((prev) => [...prev, aiMessage]);
 
       // UI 상태 반영
-      if (data.next_action === "trigger_vision") {
+      if (data.next_action === "route_vision") {
         setSystemState("waiting-image");
         setIsVisionModalOpen(true);
       } else if (

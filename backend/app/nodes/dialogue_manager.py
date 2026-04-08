@@ -3,35 +3,43 @@ from app.state import CallFlowState
 
 def run(state: CallFlowState) -> CallFlowState:
     """
-    현재 state를 보고 다음 행동(next_action)을 결정
+    현재 state를 보고 다음 행동을 결정하는 오케스트레이터 역할
     """
     intent = state.get('intent')
-    name = state.get('collected_name')
-    phone = state.get('collected_phone')
+    active_flow = state.get("active_flow")
+    collected_name = state.get("collected_name")
+    collected_phone = state.get("collected_phone")
 
-    if intent == 'faq':
-        state['next_action'] = 'call_faq'
-        state['active_flow'] = None
-        return state
+    next_action = None
+
+    # 1. FAQ → FAQ specialist로 라우팅
+    if intent == "faq":
+        next_action = "route_faq"
     
-    if intent == 'callback':
-        state['active_flow'] = 'callback'
+    # 2. Callback → 상태 기반 단계 처리
+    elif intent == "callback" or active_flow == "callback":
+        if not collected_name:
+            next_action = "ask_name"
+        elif not collected_phone:
+            next_action = "ask_phone"
+        else:
+            next_action = "route_callback"
 
-        if not name:
-            state['next_action'] = 'ask_name'
-            return state
-        if not phone:
-            state['next_action'] = 'ask_phone'
-            return state
-        
-        state['next_action'] = 'call_callback'
-        return state
-    
-    state['next_action'] = 'trigger_vision'
-    state['active_flow'] = None
+    # 3. 비전 필요
+    elif intent == "vision_needed":
+        next_action = "route_vision"
 
-    print("[Dialogue Manager] intent:", intent)
-    print("[Dialogue Manager] next_action:", state.get("next_action"))
-    print("[Dialogue Manager] state:", state)
+    # 4. 지원 불가
+    else:
+        next_action = "route_unsupported"
+
+    state["next_action"] = next_action
+
+    print("[Dialogue Manager]")
+    print("  intent:", intent)
+    print("  active_flow:", active_flow)
+    print("  collected_name:", collected_name)
+    print("  collected_phone:", collected_phone)
+    print("  next_action:", next_action)
 
     return state

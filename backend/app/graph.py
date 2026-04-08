@@ -16,14 +16,17 @@ def route_by_action(state: CallFlowState) -> str:
     """
     action = state.get('next_action')
 
-    if action == 'call_faq':
+    if action == 'route_faq':
         return 'faq_node'
     
-    if action == 'call_callback':
+    if action == 'route_callback':
         return 'callback_node'
     
-    if action == 'trigger_vision':
+    if action == 'route_vision':
         return 'vision_node'
+    
+    if action == "route_unsupported":
+        return "response_node"
     
     return 'response_node'
 

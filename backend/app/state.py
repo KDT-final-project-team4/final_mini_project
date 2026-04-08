@@ -1,12 +1,13 @@
 from typing import Optional, TypedDict, Literal
 
-IntentType = Literal['faq', 'callback', 'unknown']
+IntentType = Literal['faq', 'callback', 'vision_needed', 'unsupported']
 ActionType = Literal[
-    'call_faq',
+    'route_faq',
     'ask_name',
     'ask_phone',
-    'call_callback',
-    'trigger_vision',
+    'route_callback',
+    'route_vision',
+    'route_unsupported',
     'respond',
 ]
 FlowType = Literal['callback']

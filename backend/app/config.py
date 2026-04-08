@@ -13,4 +13,4 @@ API_TITLE = "CallFlow Mini API"
 # 앞으로 RAG 붙일 때 사용할 자리
 EMBEDDING_MODEL = "text-embedding-3-small"
 CHROMA_COLLECTION_NAME = "callflow_faq"
-CHROMA_PERSIST_DIRECTORY = "./chroma_db"
+CHROMA_PERSIST_DIRECTORY = "./data/chroma"

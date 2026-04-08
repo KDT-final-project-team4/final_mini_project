@@ -5,3 +5,7 @@ langgraph
 python-dotenv
 langchain-openai
 openai
+chromadb 
+langchain-community 
+tiktoken
+langchain_chroma

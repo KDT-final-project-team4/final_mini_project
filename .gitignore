@@ -69,3 +69,9 @@ tmp/
 temp/
 
 작업순서.txt
+
+# ========================
+# ChromaDB
+# ========================
+backend/data/chroma/*
+backend/data/faq_docs/*

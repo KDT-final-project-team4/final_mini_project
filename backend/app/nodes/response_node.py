@@ -50,6 +50,8 @@ def run(state: CallFlowState) -> CallFlowState:
             final_response = "이름을 알려주세요."
         elif action == "ask_phone":
             final_response = "전화번호를 알려주세요."
+        elif action == "route_unsupported" or state.get("intent") == "unsupported":
+            final_response = "죄송합니다. 해당 문의는 현재 이 시스템에서 안내하기 어렵습니다. 다른 질문으로 말씀해주시거나 상담원 연결을 요청해주세요."
         elif tool_result:
             final_response = tool_result
         else:

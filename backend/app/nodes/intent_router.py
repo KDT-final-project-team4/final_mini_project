@@ -6,10 +6,7 @@ from langchain_core.messages import HumanMessage, SystemMessage
 
 from app.state import CallFlowState
 from app.prompts.intent_router_prompt import SYSTEM_PROMPT
-from app.config import (
-    INTENT_ROUTER_MODEL,
-    INTENT_ROUTER_TEMPERATURE,
-)
+from app.config import INTENT_ROUTER_MODEL, INTENT_ROUTER_TEMPERATURE
 
 load_dotenv()
 
@@ -18,9 +15,11 @@ llm = ChatOpenAI(
     temperature=INTENT_ROUTER_TEMPERATURE,
 )
 
+VALID_INTENTS = ["faq", "callback", "vision_needed", "unsupported"]
+
 def run(state: CallFlowState) -> CallFlowState:
     """
-    사용자 입력을 faq / callback / unknown 으로 분류
+    사용자 입력을 faq / callback / vision_needed / unsupported 으로 분류
     단, 이미 callback 흐름이 진행 중이면 intent를 유지
     """
     active_flow = state.get('active_flow')
@@ -28,6 +27,9 @@ def run(state: CallFlowState) -> CallFlowState:
 
     if active_flow == 'callback':
         state['intent'] = 'callback'
+        print("[Intent Router] active callback flow 유지")
+        print("[Intent Router] user_input:", user_input)
+        print("[Intent Router] intent:", state.get("intent"))
         return state
 
     response = llm.invoke(
@@ -41,12 +43,12 @@ def run(state: CallFlowState) -> CallFlowState:
 
     try:
         parsed = json.loads(content)
-        intent = parsed.get("intent", "unknown")
+        intent = parsed.get("intent", "unsupported")
     except Exception:
-        intent = "unknown"
+        intent = "unsupported"
 
-    if intent not in ["faq", "callback", "unknown"]:
-        intent = "unknown"
+    if intent not in VALID_INTENTS:
+        intent = "unsupported"
 
     state["intent"] = intent
 
