@@ -13,4 +13,6 @@ def run(state: CallFlowState) -> CallFlowState:
 
     state['tool_result'] = result
     state['active_flow'] = None
+    state["collected_name"] = None
+    state["collected_phone"] = None
     return state

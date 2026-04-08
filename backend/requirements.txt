@@ -3,3 +3,5 @@ uvicorn
 langchain
 langgraph
 python-dotenv
+langchain-openai
+openai

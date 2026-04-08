@@ -29,4 +29,9 @@ def run(state: CallFlowState) -> CallFlowState:
     
     state['next_action'] = 'trigger_vision'
     state['active_flow'] = None
+
+    print("[Dialogue Manager] intent:", intent)
+    print("[Dialogue Manager] next_action:", state.get("next_action"))
+    print("[Dialogue Manager] state:", state)
+
     return state

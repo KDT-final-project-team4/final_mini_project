@@ -58,8 +58,13 @@ def chat(req: ChatRequest):
         "final_response": None,
         "active_flow": active_flow,
     }
+
+    print("[API] request.message:", req.message)
+    print("[API] incoming session_state:", req.session_state)
     
     result = graph.invoke(state)
+
+    print("[API] graph result:", result)
 
     return ChatResponse(
         response=result.get("final_response", "응답 생성 실패"),
