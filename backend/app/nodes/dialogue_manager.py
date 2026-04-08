@@ -9,7 +9,6 @@ load_dotenv()
 os.environ["GOOGLE_API_KEY"] = os.getenv("GOOGLE_API_KEY")
 
 # dialogue_manager node
-# 일반 대화 처리 노드
 def run(state):
 
     user_input = state.get('user_input')

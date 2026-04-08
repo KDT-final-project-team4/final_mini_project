@@ -34,7 +34,7 @@ def build_graph():
             'callback': 'CALLBACK_NODE',
             'vision': 'VISION_NODE',
             'dialogue': 'DIALOGUE_NODE',
-            # 만약 intent가 매핑에 없는 값일 경우를 대비한 기본값 설정 추천
+            # 만약 intent가 매핑에 없는 값일 경우를 대비한 기본값 설정 
             None: 'RESPONSE_NODE' 
         }
     )

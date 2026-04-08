@@ -28,11 +28,19 @@ def run(state):
 
     chain = prompt_template | llm
 
-    response = chain.invoke({
-        'user_input': user_input,
-        'intent': intent,
-        'tool_result': tool_result
-    })
+    if tool_result:
+        response = chain.invoke({
+            'user_input': user_input,
+            'intent': intent,
+            'tool_result': tool_result
+        })
+
+    else:
+        response = chain.invoke({
+            'user_input': user_input,
+            'intent': intent
+        })
+        
 
     return {
         'final_response': response.content.strip()
