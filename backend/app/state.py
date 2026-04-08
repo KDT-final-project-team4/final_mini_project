@@ -9,6 +9,7 @@ ActionType = Literal[
     'trigger_vision',
     'respond',
 ]
+FlowType = Literal['callback']
 
 class CallFlowState(TypedDict, total=False):
     # 현재 사용자 입력
@@ -29,3 +30,6 @@ class CallFlowState(TypedDict, total=False):
 
     # 최종 사용자 응답
     final_response: Optional[str]
+
+    # 현재 진행 중인 흐름 기억
+    active_flow: Optional[FlowType]

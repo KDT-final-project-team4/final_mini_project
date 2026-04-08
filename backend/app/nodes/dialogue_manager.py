@@ -11,9 +11,12 @@ def run(state: CallFlowState) -> CallFlowState:
 
     if intent == 'faq':
         state['next_action'] = 'call_faq'
+        state['active_flow'] = None
         return state
     
     if intent == 'callback':
+        state['active_flow'] = 'callback'
+
         if not name:
             state['next_action'] = 'ask_name'
             return state
@@ -25,4 +28,5 @@ def run(state: CallFlowState) -> CallFlowState:
         return state
     
     state['next_action'] = 'trigger_vision'
+    state['active_flow'] = None
     return state

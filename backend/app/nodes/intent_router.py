@@ -4,9 +4,14 @@ from app.state import CallFlowState
 def run(state: CallFlowState) -> CallFlowState:
     """
     사용자 입력을 faq / callback / unknown 으로 분류
-    지금은 rule-based로 먼저 구현
+    단, 이미 callback 흐름이 진행 중이면 intent를 유지
     """
+    active_flow = state.get('active_flow')
     user_input = state.get('user_input', '').strip().lower()
+
+    if active_flow == 'callback':
+        state['intent'] = 'callback'
+        return state
 
     if any(keyword in user_input for keyword in ['운영시간', '주차', '반품', '진료시간']):
         state['intent'] = 'faq'

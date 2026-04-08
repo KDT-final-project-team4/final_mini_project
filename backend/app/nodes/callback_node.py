@@ -12,4 +12,5 @@ def run(state: CallFlowState) -> CallFlowState:
     result = callback_tool(name, phone)
 
     state['tool_result'] = result
+    state['active_flow'] = None
     return state
