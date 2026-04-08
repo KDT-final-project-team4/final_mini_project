@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 from app.nodes import intent_router
 from fastapi.middleware.cors import CORSMiddleware
+from app.graph import build_graph
 
 app = FastAPI()
 
@@ -17,7 +18,10 @@ class ChatRequest(BaseModel):
 
 @app.post("/chat")
 def chat(req: ChatRequest):
-    state = {
+
+    app = build_graph()
+
+    initial_state = {
         "user_input": req.message,
         "intent": None,
         "next_action": None,
@@ -27,4 +31,5 @@ def chat(req: ChatRequest):
         "final_response": None
     }
 
-    state = intent_router.run(state)
+    final_state = app.invoke(initial_state)
+    return {"response": final_state.get('final_response', '')}

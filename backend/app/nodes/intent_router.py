@@ -1,6 +1,6 @@
 from app.prompts.intent_router_prompt import get_intent_prompt
 from dotenv import load_dotenv
-from langchain_core.prompts import ChatPromptTemplate, PromptTemplate
+from langchain_core.prompts import ChatPromptTemplate
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_community.tools.tavily_search import TavilySearchResults
 from pydantic import BaseModel, Field

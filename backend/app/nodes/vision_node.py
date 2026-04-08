@@ -4,5 +4,6 @@ from app.tools.vision_tool import vision_tool
 
 def run(state):
     return_message = vision_tool()
-    state.tool_result = return_message
-    return state
+    return {
+        'tool_result': return_message
+    }

@@ -8,6 +8,7 @@ def run(state):
 
     if name and phone:
         callback = callback_tool(name, phone)
-        state['tool_result'] = callback
 
-    return state
+    return {
+        'tool_result': callback
+    }
