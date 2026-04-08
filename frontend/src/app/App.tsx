@@ -1,174 +1,184 @@
-import { useState, useRef, useEffect } from 'react';
-import { MessageList } from './components/MessageList';
-import { InputArea } from './components/InputArea';
-import { SystemStateIndicator } from './components/SystemStateIndicator';
-import { VisionUploadModal } from './components/VisionUploadModal';
-import { CallbackFlow } from './components/CallbackFlow';
-import { Header } from './components/Header';
-import { DemoPanel } from './components/DemoPanel';
+import { useState, useRef, useEffect } from "react";
+import { MessageList } from "./components/MessageList";
+import { InputArea } from "./components/InputArea";
+import { SystemStateIndicator } from "./components/SystemStateIndicator";
+import { VisionUploadModal } from "./components/VisionUploadModal";
+import { Header } from "./components/Header";
+import { DemoPanel } from "./components/DemoPanel";
 
 export type MessageType = {
   id: string;
-  type: 'user' | 'ai' | 'system';
+  type: "user" | "ai" | "system";
   content: string;
   timestamp: Date;
   structuredData?: {
-    type: 'faq' | 'callback' | 'vision' | 'verification' | 'structured';
+    type: "faq" | "callback" | "vision" | "verification" | "structured";
     data?: any;
   };
 };
 
-export type SystemState = 
-  | 'idle' 
-  | 'analyzing' 
-  | 'processing' 
-  | 'collecting-info' 
-  | 'waiting-image' 
-  | 'callback-flow'
-  | 'completing';
+export type SystemState =
+  | "idle"
+  | "analyzing"
+  | "processing"
+  | "collecting-info"
+  | "waiting-image"
+  | "callback-flow"
+  | "completing";
+
+type SessionState = {
+  collected_name: string | null;
+  collected_phone: string | null;
+  active_flow: string | null;
+};
+
+type ChatApiResponse = {
+  response: string;
+  intent?: string | null;
+  next_action?: string | null;
+  session_state: SessionState;
+};
+
+const API_BASE_URL = "http://127.0.0.1:8000";
 
 export default function App() {
   const [messages, setMessages] = useState<MessageType[]>([
     {
-      id: '1',
-      type: 'ai',
-      content: 'Welcome to CallFlow AI Support. How can I assist you today?',
+      id: "1",
+      type: "ai",
+      content: "Welcome to CallFlow AI Support. How can I assist you today?",
       timestamp: new Date(),
       structuredData: {
-        type: 'structured',
+        type: "structured",
         data: {
-          greeting: true
-        }
-      }
-    }
+          greeting: true,
+        },
+      },
+    },
   ]);
-  
-  const [systemState, setSystemState] = useState<SystemState>('idle');
+
+  const [systemState, setSystemState] = useState<SystemState>("idle");
   const [isVisionModalOpen, setIsVisionModalOpen] = useState(false);
-  const [isCallbackFlowOpen, setIsCallbackFlowOpen] = useState(false);
   const [isVoiceActive, setIsVoiceActive] = useState(false);
+
+  const [sessionState, setSessionState] = useState<SessionState>({
+    collected_name: null,
+    collected_phone: null,
+    active_flow: null,
+  });
+
+  const [lastNextAction, setLastNextAction] = useState<string | null>(null);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
 
-  const simulateAIResponse = (userMessage: string) => {
-    const lowerMessage = userMessage.toLowerCase();
-    
-    // Simulate processing
-    setSystemState('analyzing');
-    
-    setTimeout(() => {
-      let aiResponse: MessageType;
-      
-      // FAQ Response
-      if (lowerMessage.includes('refund') || lowerMessage.includes('return')) {
-        setSystemState('processing');
-        setTimeout(() => {
-          aiResponse = {
-            id: Date.now().toString(),
-            type: 'ai',
-            content: 'I can help you with refund requests.',
-            timestamp: new Date(),
-            structuredData: {
-              type: 'faq',
-              data: {
-                title: 'Refund Policy',
-                steps: [
-                  'Refunds are processed within 5-7 business days',
-                  'Original payment method will be credited',
-                  'Items must be returned in original condition'
-                ]
-              }
-            }
-          };
-          setMessages(prev => [...prev, aiResponse]);
-          setSystemState('idle');
-        }, 1500);
-      }
-      // Callback Flow
-      else if (lowerMessage.includes('call') || lowerMessage.includes('speak') || lowerMessage.includes('talk')) {
-        setSystemState('collecting-info');
-        setTimeout(() => {
-          aiResponse = {
-            id: Date.now().toString(),
-            type: 'ai',
-            content: 'I understand you would like to speak with a representative. Let me collect your information for a callback.',
-            timestamp: new Date(),
-            structuredData: {
-              type: 'callback'
-            }
-          };
-          setMessages(prev => [...prev, aiResponse]);
-          setSystemState('callback-flow');
-          setIsCallbackFlowOpen(true);
-        }, 1500);
-      }
-      // Vision Trigger
-      else if (lowerMessage.includes('damaged') || lowerMessage.includes('broken') || lowerMessage.includes('defect')) {
-        setSystemState('waiting-image');
-        setTimeout(() => {
-          aiResponse = {
-            id: Date.now().toString(),
-            type: 'ai',
-            content: 'I need to assess the issue visually. Please upload an image of the damaged item.',
-            timestamp: new Date(),
-            structuredData: {
-              type: 'vision'
-            }
-          };
-          setMessages(prev => [...prev, aiResponse]);
-          setIsVisionModalOpen(true);
-        }, 1500);
-      }
-      // Generic Response
-      else {
-        setSystemState('processing');
-        setTimeout(() => {
-          aiResponse = {
-            id: Date.now().toString(),
-            type: 'ai',
-            content: 'I\'m analyzing your request. Our support system is designed to provide structured assistance.',
-            timestamp: new Date(),
-            structuredData: {
-              type: 'structured',
-              data: {
-                suggestions: [
-                  'Request a callback',
-                  'Check refund status',
-                  'Report damaged item'
-                ]
-              }
-            }
-          };
-          setMessages(prev => [...prev, aiResponse]);
-          setSystemState('idle');
-        }, 1500);
-      }
-    }, 800);
-  };
+  async function sendMessageToBackend(
+    message: string,
+    currentSessionState: SessionState
+  ): Promise<ChatApiResponse> {
+    const response = await fetch(`${API_BASE_URL}/chat`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        message,
+        session_state: currentSessionState,
+      }),
+    });
 
-  const handleSendMessage = (message: string) => {
+    if (!response.ok) {
+      throw new Error("서버 요청 실패");
+    }
+
+    return response.json();
+  }
+
+  const handleSendMessage = async (message: string) => {
     const userMessage: MessageType = {
       id: Date.now().toString(),
-      type: 'user',
+      type: "user",
       content: message,
-      timestamp: new Date()
+      timestamp: new Date(),
     };
-    
-    setMessages(prev => [...prev, userMessage]);
-    simulateAIResponse(message);
+
+    setMessages((prev) => [...prev, userMessage]);
+    setSystemState("analyzing");
+
+    try {
+      // 이전 턴 상태를 기반으로 이름/전화번호를 sessionState에 반영
+      const updatedSessionState: SessionState = { ...sessionState };
+
+      if (lastNextAction === "ask_name") {
+        updatedSessionState.collected_name = message;
+      }
+
+      if (lastNextAction === "ask_phone") {
+        updatedSessionState.collected_phone = message;
+      }
+
+      const data = await sendMessageToBackend(message, updatedSessionState);
+
+      setSessionState(data.session_state);
+      setLastNextAction(data.next_action ?? null);
+
+      const aiMessage: MessageType = {
+        id: (Date.now() + 1).toString(),
+        type: "ai",
+        content: data.response,
+        timestamp: new Date(),
+        structuredData: {
+          type:
+            data.intent === "faq"
+              ? "faq"
+              : data.intent === "callback"
+              ? "callback"
+              : data.next_action === "trigger_vision"
+              ? "vision"
+              : "structured",
+        },
+      };
+
+      setMessages((prev) => [...prev, aiMessage]);
+
+      // UI 상태 반영
+      if (data.next_action === "trigger_vision") {
+        setSystemState("waiting-image");
+        setIsVisionModalOpen(true);
+      } else if (
+        data.next_action === "ask_name" ||
+        data.next_action === "ask_phone"
+      ) {
+        setSystemState("collecting-info");
+      } else {
+        setSystemState("idle");
+      }
+    } catch (error) {
+      console.error(error);
+
+      const errorMessage: MessageType = {
+        id: (Date.now() + 1).toString(),
+        type: "ai",
+        content: "서버와 통신 중 문제가 발생했습니다.",
+        timestamp: new Date(),
+      };
+
+      setMessages((prev) => [...prev, errorMessage]);
+      setSystemState("idle");
+    }
   };
 
   const handleVoiceInput = () => {
     setIsVoiceActive(true);
-    
-    // Simulate voice recognition
+
+    // 현재는 음성 입력 mock
     setTimeout(() => {
       setIsVoiceActive(false);
       const voiceMessage = "I need help with a refund";
@@ -178,104 +188,63 @@ export default function App() {
 
   const handleImageUpload = (file: File) => {
     setIsVisionModalOpen(false);
-    setSystemState('processing');
-    
-    const systemMessage: MessageType = {
-      id: Date.now().toString(),
-      type: 'system',
-      content: `Image uploaded: ${file.name}`,
-      timestamp: new Date()
-    };
-    setMessages(prev => [...prev, systemMessage]);
-    
-    setTimeout(() => {
-      const aiResponse: MessageType = {
-        id: Date.now().toString(),
-        type: 'ai',
-        content: 'Thank you for uploading the image. I can see the damage to the item. Based on our analysis, you are eligible for a full refund or replacement.',
-        timestamp: new Date(),
-        structuredData: {
-          type: 'structured',
-          data: {
-            analysis: 'Item damage confirmed',
-            actions: ['Full refund available', 'Replacement option available', 'No return shipping fee']
-          }
-        }
-      };
-      setMessages(prev => [...prev, aiResponse]);
-      setSystemState('idle');
-    }, 2000);
-  };
+    setSystemState("processing");
 
-  const handleCallbackComplete = (data: { name: string; phone: string }) => {
-    setIsCallbackFlowOpen(false);
-    setSystemState('completing');
-    
     const systemMessage: MessageType = {
       id: Date.now().toString(),
-      type: 'system',
-      content: `Callback request submitted for ${data.name}`,
-      timestamp: new Date()
+      type: "system",
+      content: `Image uploaded: ${file.name}`,
+      timestamp: new Date(),
     };
-    setMessages(prev => [...prev, systemMessage]);
-    
+    setMessages((prev) => [...prev, systemMessage]);
+
+    // 현재는 업로드 후 분석 mock
     setTimeout(() => {
       const aiResponse: MessageType = {
         id: Date.now().toString(),
-        type: 'ai',
-        content: `Your callback request has been confirmed. A representative will contact you at ${data.phone} within 24 hours.`,
+        type: "ai",
+        content:
+          "Thank you for uploading the image. This is currently a mock vision flow. In the full version, the backend will analyze the image and return a structured result.",
         timestamp: new Date(),
         structuredData: {
-          type: 'structured',
+          type: "vision",
           data: {
-            confirmation: true,
-            reference: `CB-${Date.now().toString().slice(-6)}`
-          }
-        }
+            mock: true,
+            filename: file.name,
+          },
+        },
       };
-      setMessages(prev => [...prev, aiResponse]);
-      setSystemState('idle');
+      setMessages((prev) => [...prev, aiResponse]);
+      setSystemState("idle");
     }, 1500);
   };
 
   return (
     <div className="flex flex-col h-screen bg-gray-50">
       <Header />
-      
+
       <SystemStateIndicator state={systemState} />
-      
+
       <div className="flex-1 overflow-hidden">
-        <MessageList 
-          messages={messages} 
-          messagesEndRef={messagesEndRef}
-        />
+        <MessageList messages={messages} messagesEndRef={messagesEndRef} />
       </div>
-      
-      <InputArea 
+
+      <InputArea
         onSendMessage={handleSendMessage}
         onVoiceInput={handleVoiceInput}
         isVoiceActive={isVoiceActive}
-        disabled={systemState !== 'idle' && systemState !== 'waiting-image'}
+        disabled={systemState === "processing" || systemState === "analyzing" || systemState === "completing"}
       />
-      
+
       <VisionUploadModal
         isOpen={isVisionModalOpen}
         onClose={() => {
           setIsVisionModalOpen(false);
-          setSystemState('idle');
+          setSystemState("idle");
         }}
         onUpload={handleImageUpload}
       />
-      
-      <CallbackFlow
-        isOpen={isCallbackFlowOpen}
-        onClose={() => {
-          setIsCallbackFlowOpen(false);
-          setSystemState('idle');
-        }}
-        onComplete={handleCallbackComplete}
-      />
-      
+
       <DemoPanel />
     </div>
   );
