@@ -8,8 +8,8 @@ export function Header() {
           <Bot className="w-6 h-6 text-white" />
         </div>
         <div>
-          <h1 className="text-lg font-semibold text-gray-900">CallFlow AI Support</h1>
-          <p className="text-xs text-gray-500">Multi-Agent Customer Service System</p>
+          <h1 className="text-lg font-semibold text-gray-900">CallFlow AI</h1>
+          <p className="text-xs text-gray-500">Multi-Agent 고객 서비스 시스템</p>
         </div>
       </div>
     </header>

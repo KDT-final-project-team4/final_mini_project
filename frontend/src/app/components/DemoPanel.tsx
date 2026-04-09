@@ -7,24 +7,24 @@ export function DemoPanel() {
 
   const demoScenarios = [
     {
-      title: 'FAQ Response',
-      query: 'I need a refund',
-      description: 'Triggers structured FAQ response with steps'
+      title: 'FAQ 문의',
+      query: '운영시간 알려줘',
+      description: 'FAQ Specialist가 매뉴얼/FAQ 기반 답변을 제공합니다.'
     },
     {
-      title: 'Callback Request',
-      query: 'I want to speak with someone',
-      description: 'Initiates callback flow with multi-step form'
+      title: '상담원 연결 요청',
+      query: '상담원 연결해줘',
+      description: '이름과 전화번호를 순서대로 받아 콜백 요청을 등록합니다.'
     },
     {
-      title: 'Vision Analysis',
-      query: 'I received a damaged item',
-      description: 'Requests image upload for visual inspection'
+      title: '사진 확인 필요',
+      query: '이거 이상해요',
+      description: '시각 정보가 필요하다고 판단되면 사진 업로드를 요청합니다.'
     },
     {
-      title: 'General Query',
-      query: 'How can you help me?',
-      description: 'Shows structured suggestions and system capabilities'
+      title: '지원 불가 문의',
+      query: '내일 삼성전자 주가 알려줘',
+      description: '현재 시스템 범위를 벗어난 문의는 정중히 안내 불가로 응답합니다.'
     }
   ];
 
@@ -39,9 +39,9 @@ export function DemoPanel() {
             className="mb-3 bg-white rounded-xl shadow-xl border border-gray-200 overflow-hidden w-72"
           >
             <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-3">
-              <h3 className="font-semibold text-white text-sm">Try Demo Scenarios</h3>
+              <h3 className="font-semibold text-white text-sm">데모 가이드</h3>
               <p className="text-xs text-blue-100 mt-0.5">
-                Test different AI agent flows
+                멀티에이전트 상담 흐름을 직접 테스트해보세요
               </p>
             </div>
             
@@ -71,7 +71,7 @@ export function DemoPanel() {
 
             <div className="px-3 py-2.5 bg-blue-50 border-t border-blue-100">
               <p className="text-xs text-blue-800">
-                💡 Type or speak any of these queries to see the system in action
+                💡 위 문장을 직접 입력해서 FAQ / Callback / Vision / Unsupported 흐름을 확인해보세요.
               </p>
             </div>
           </motion.div>
@@ -83,7 +83,7 @@ export function DemoPanel() {
         className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-full shadow-lg px-4 py-3 flex items-center gap-2 font-medium text-sm transition-all hover:shadow-xl"
       >
         <HelpCircle className="w-5 h-5" />
-        <span>Demo Guide</span>
+        <span>데모 가이드</span>
         {isOpen ? (
           <ChevronDown className="w-4 h-4" />
         ) : (

@@ -82,7 +82,7 @@ export function InputArea({ onSendMessage, onVoiceInput, isVoiceActive, disabled
                 type="text"
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
-                placeholder="Type your message or use voice input..."
+                placeholder="메시지를 입력하세요 (예: 운영시간 알려줘)"
                 disabled={disabled}
                 className="w-full pl-4 pr-12 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm focus:outline-none focus:border-blue-500 focus:bg-white transition-colors disabled:bg-gray-100 disabled:cursor-not-allowed"
               />
@@ -100,11 +100,11 @@ export function InputArea({ onSendMessage, onVoiceInput, isVoiceActive, disabled
         {/* Helper Text */}
         <div className="mt-2 px-1 flex items-center justify-between">
           <p className="text-xs text-gray-500">
-            Voice-first support system • Press mic to speak
+            음성 인식 시스템 • 마이크를 누르고 말해주세요
           </p>
           {disabled && (
             <span className="text-xs text-amber-600 font-medium">
-              Processing request...
+              답변을 기다리는 중입니다....
             </span>
           )}
         </div>

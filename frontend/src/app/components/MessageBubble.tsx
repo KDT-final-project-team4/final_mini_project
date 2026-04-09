@@ -13,7 +13,7 @@ export function MessageBubble({ message }: Props) {
   if (isSystem) {
     return (
       <div className="flex items-center justify-center gap-2 py-2">
-        <div className="flex items-center gap-2 bg-gray-100 text-gray-600 px-4 py-2 rounded-full text-sm">
+        <div className="flex items-center gap-2 bg-gray-100 text-gray-600 px-4 py-2 rounded-full text-sm whitespace-pre-line">
           <Info className="w-4 h-4" />
           <span>{message.content}</span>
         </div>
@@ -33,7 +33,7 @@ export function MessageBubble({ message }: Props) {
           }`}
         >
           {/* Main Content */}
-          <p className={`text-sm leading-relaxed ${isUser ? '' : 'text-gray-800'}`}>
+          <p className={`text-sm leading-relaxed whitespace-pre-line ${isUser ? '' : 'text-gray-800'}`}>
             {message.content}
           </p>
 

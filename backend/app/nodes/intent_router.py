@@ -20,7 +20,7 @@ VALID_INTENTS = ["faq", "callback", "vision_needed", "unsupported"]
 def run(state: CallFlowState) -> CallFlowState:
     """
     사용자 입력을 faq / callback / vision_needed / unsupported 으로 분류
-    단, 이미 callback 흐름이 진행 중이면 intent를 유지
+    단, 이미 callback 흐름이 진행 중이면 intent를 callback으로 유지
     """
     active_flow = state.get('active_flow')
     user_input = state.get('user_input', '').strip()

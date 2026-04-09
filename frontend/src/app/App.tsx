@@ -46,7 +46,7 @@ export default function App() {
     {
       id: "1",
       type: "ai",
-      content: "Welcome to CallFlow AI Support. How can I assist you today?",
+      content: "안녕하세요 😊 CallFlow 상담 시스템입니다.\n\n다음과 같은 요청을 도와드릴 수 있습니다:\n- 운영시간, 위치 등 문의\n- 상담원 연결 요청\n- 사진을 통한 문제 확인\n\n무엇을 도와드릴까요??",
       timestamp: new Date(),
       structuredData: {
         type: "structured",
