@@ -18,9 +18,13 @@ def run(state: CallFlowState) -> CallFlowState:
     
     # 2. Callback → 상태 기반 단계 처리
     elif intent == "callback" or active_flow == "callback":
-        state["active_flow"] = "callback"
-        state["collected_name"] = None
-        state["collected_phone"] = None
+        if active_flow != "callback":
+            state["active_flow"] = "callback"
+            state["collected_name"] = None
+            state["collected_phone"] = None
+
+            collected_name = None
+            collected_phone = None
 
         if not collected_name:
             next_action = "ask_name"
