@@ -20,23 +20,26 @@ def _build_tool_response(state: CallFlowState) -> str:
     if not tool_result:
         return UNKNOWN_FALLBACK_MESSAGE
 
-    if tool_result["tool_name"] == "faq":
-        return tool_result["data"].get("answer", UNKNOWN_FALLBACK_MESSAGE)
+    tool_name = tool_result.get("tool_name")
+    data = tool_result.get("data") or {}
 
-    if tool_result["tool_name"] == "vision":
-        return tool_result["data"].get("guide", VISION_FALLBACK_MESSAGE)
+    if tool_name == "faq":
+        return data.get("answer", UNKNOWN_FALLBACK_MESSAGE)
 
-    if tool_result["tool_name"] == "callback":
-        if tool_result["success"]:
-            name = tool_result["data"].get("name", "고객님")
-            masked_phone = tool_result["data"].get("masked_phone", "비공개")
+    if tool_name == "vision":
+        return data.get("guide", VISION_FALLBACK_MESSAGE)
+
+    if tool_name == "callback":
+        if tool_result.get("success"):
+            name = data.get("name", "고객님")
+            masked_phone = data.get("masked_phone", "비공개")
             return f"{name}님, 콜백 등록이 완료됐어요. {masked_phone} 번호로 연락드릴게요."
 
         error = tool_result.get("error") or "입력값을 다시 확인해주세요."
         return f"콜백 등록에 실패했어요. {error}"
 
-    if tool_result["tool_name"] == "callback_validation":
-        field = tool_result.get("data", {}).get("field")
+    if tool_name == "callback_validation":
+        field = data.get("field")
         if field == "name":
             return ASK_NAME_RETRY_MESSAGE
         if field == "phone":
@@ -80,6 +83,10 @@ def run(state: CallFlowState) -> CallFlowState:
 
     state["final_response"] = _build_tool_response(state)
     return state
+
+
+# graph.py 호환용 별칭
+response_node = run
 
 
 if __name__ == "__main__":

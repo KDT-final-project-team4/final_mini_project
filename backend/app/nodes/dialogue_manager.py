@@ -66,17 +66,14 @@ def _clean_text(text: str | None) -> str:
     return (text or "").strip()
 
 
-
 def _contains_keyword(text: str, keywords: tuple[str, ...]) -> bool:
     return any(keyword in text for keyword in keywords)
-
 
 
 def _looks_like_phone(text: str) -> bool:
     clean = _clean_text(text)
     digits = re.sub(r"[^0-9]", "", clean)
     return bool(clean) and bool(_PHONE_PATTERN.match(clean)) and len(digits) in (10, 11)
-
 
 
 def _looks_like_name(text: str) -> bool:
@@ -101,7 +98,6 @@ def _looks_like_name(text: str) -> bool:
     return bool(_NAME_PATTERN.fullmatch(clean))
 
 
-
 def _set_callback_validation(
     state: CallFlowState,
     *,
@@ -122,13 +118,11 @@ def _set_callback_validation(
     return state
 
 
-
 def _start_callback_flow(state: CallFlowState) -> CallFlowState:
     state["active_flow"] = "callback"
     state["awaiting_field"] = "name"
     state["next_action"] = "ask_name"
     return state
-
 
 
 def _handle_callback_flow(state: CallFlowState) -> CallFlowState:
@@ -189,7 +183,6 @@ def _handle_callback_flow(state: CallFlowState) -> CallFlowState:
     return state
 
 
-
 def run(state: CallFlowState) -> CallFlowState:
     """
     Dialogue Manager Node
@@ -203,6 +196,7 @@ def run(state: CallFlowState) -> CallFlowState:
     - callback 시작 -> ask_name
     - callback 이름 수집 완료 -> ask_phone
     - callback 이름/전화번호 수집 완료 -> run_callback
+    - vision -> run_vision
     - unknown -> run_vision
     """
     state["tool_result"] = None
@@ -220,8 +214,16 @@ def run(state: CallFlowState) -> CallFlowState:
     if intent == "callback":
         return _start_callback_flow(state)
 
+    if intent == "vision":
+        state["next_action"] = "run_vision"
+        return state
+
     state["next_action"] = "run_vision"
     return state
+
+
+# graph.py 호환용 별칭
+dialogue_manager = run
 
 
 if __name__ == "__main__":
@@ -245,18 +247,6 @@ if __name__ == "__main__":
             "next_action": None,
             "active_flow": None,
             "awaiting_field": None,
-            "collected_name": None,
-            "collected_phone": None,
-            "tool_result": None,
-            "final_response": None,
-        },
-        {
-            "session_id": "demo-2",
-            "user_input": "운영시간 알려줘",
-            "intent": "callback",
-            "next_action": None,
-            "active_flow": "callback",
-            "awaiting_field": "name",
             "collected_name": None,
             "collected_phone": None,
             "tool_result": None,

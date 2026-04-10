@@ -1,30 +1,79 @@
 from __future__ import annotations
 
 try:
-    from ..state import CallFlowState, reset_callback_state
-    from ..tools.callback_tool import callback_tool
+    from app.state import CallFlowState, reset_callback_state
+    from app.tools.callback_tool import callback_tool
 except ImportError:  # local test fallback
     from state import CallFlowState, reset_callback_state
-    from callback_tool import callback_tool
+    from tools.callback_tool import callback_tool
+
+
+def _get_error_message(state: CallFlowState) -> str | None:
+    tool_result = state.get("tool_result") or {}
+    error = tool_result.get("error")
+    if isinstance(error, str) and error.strip():
+        return error
+    return None
 
 
 def run(state: CallFlowState) -> CallFlowState:
     """
-    Callback Tool 실행 노드
+    Callback Node
 
-    실행 조건
-    - collected_name, collected_phone가 모두 있을 때
-    - dialogue_manager가 next_action="run_callback" 으로 결정했을 때
+    역할
+    - ask_name / ask_phone 인 경우 사용자에게 보여줄 문구를 만든다.
+    - run_callback 인 경우 callback_tool을 실행한다.
     """
+    next_action = state.get("next_action")
+
+    if next_action == "ask_name":
+        state["final_response"] = _get_error_message(state) or "성함을 알려주세요."
+        return state
+
+    if next_action == "ask_phone":
+        state["final_response"] = _get_error_message(state) or "전화번호를 알려주세요. 예: 010-1234-5678"
+        return state
+
+    if next_action != "run_callback":
+        return state
+
     name = (state.get("collected_name") or "").strip()
     phone = (state.get("collected_phone") or "").strip()
+
+    if not name:
+        state["active_flow"] = "callback"
+        state["awaiting_field"] = "name"
+        state["next_action"] = "ask_name"
+        state["tool_result"] = {
+            "success": False,
+            "tool_name": "callback_validation",
+            "message": "콜백 입력값 확인 필요",
+            "data": {"field": "name", "user_input": ""},
+            "error": "성함을 먼저 입력해주세요.",
+        }
+        state["final_response"] = "성함을 먼저 입력해주세요."
+        return state
+
+    if not phone:
+        state["active_flow"] = "callback"
+        state["awaiting_field"] = "phone"
+        state["next_action"] = "ask_phone"
+        state["tool_result"] = {
+            "success": False,
+            "tool_name": "callback_validation",
+            "message": "콜백 입력값 확인 필요",
+            "data": {"field": "phone", "user_input": ""},
+            "error": "전화번호를 먼저 입력해주세요.",
+        }
+        state["final_response"] = "전화번호를 먼저 입력해주세요."
+        return state
 
     result = callback_tool(name, phone)
     state["tool_result"] = result
 
-    if result["success"]:
-        reset_callback_state(state)
+    if result.get("success"):
         state["next_action"] = "finish"
+        reset_callback_state(state)
     else:
         state["active_flow"] = "callback"
         if not name:
@@ -35,6 +84,10 @@ def run(state: CallFlowState) -> CallFlowState:
             state["next_action"] = "ask_phone"
 
     return state
+
+
+# graph.py 호환용 별칭
+callback_node = run
 
 
 if __name__ == "__main__":

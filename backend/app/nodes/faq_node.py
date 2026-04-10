@@ -5,7 +5,7 @@ try:
     from app.tools.faq_tool import faq_tool
 except ImportError:  # local test fallback
     from state import CallFlowState
-    from faq_tool import faq_tool
+    from tools.faq_tool import faq_tool
 
 
 def run(state: CallFlowState) -> CallFlowState:
@@ -19,6 +19,10 @@ def run(state: CallFlowState) -> CallFlowState:
     query = (state.get("user_input") or "").strip()
     state["tool_result"] = faq_tool(query)
     return state
+
+
+# graph.py 호환용 별칭
+faq_node = run
 
 
 if __name__ == "__main__":

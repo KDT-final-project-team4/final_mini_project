@@ -2,6 +2,7 @@
 # Python / Backend
 # ========================
 __pycache__/
+__init__.py
 *.py[cod]
 *.pyo
 *.pyd

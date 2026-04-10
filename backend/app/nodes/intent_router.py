@@ -32,6 +32,17 @@ CALLBACK_KEYWORDS: Final[tuple[str, ...]] = (
     "전화좀",
 )
 
+VISION_KEYWORDS: Final[tuple[str, ...]] = (
+    "사진",
+    "이미지",
+    "첨부",
+    "봐줘",
+    "확인해줘",
+    "고장",
+    "오류",
+    "문제",
+)
+
 
 def _normalize_text(text: str) -> str:
     return text.strip().lower()
@@ -55,7 +66,8 @@ def classify_intent(user_input: str) -> str:
     우선순위
     1. callback
     2. faq
-    3. unknown
+    3. vision
+    4. unknown
     """
     text = _normalize_text(user_input)
 
@@ -68,6 +80,9 @@ def classify_intent(user_input: str) -> str:
     if _contains_keyword(text, FAQ_KEYWORDS):
         return "faq"
 
+    if _contains_keyword(text, VISION_KEYWORDS):
+        return "vision"
+
     return "unknown"
 
 
@@ -76,7 +91,7 @@ def run(state: CallFlowState) -> CallFlowState:
     Intent Router Node
 
     역할
-    - 현재 사용자 입력을 faq / callback / unknown 중 하나로 분류
+    - 현재 사용자 입력을 faq / callback / vision / unknown 중 하나로 분류
     - 단, callback 진행 중이면 intent를 callback으로 유지
     """
     if _is_callback_in_progress(state):
@@ -86,6 +101,10 @@ def run(state: CallFlowState) -> CallFlowState:
     user_input = state.get("user_input", "")
     state["intent"] = classify_intent(user_input)
     return state
+
+
+# graph.py 호환용 별칭
+intent_router = run
 
 
 if __name__ == "__main__":

@@ -1,7 +1,9 @@
-from typing import Any, Literal, Optional, TypedDict
+from __future__ import annotations
+
+from typing import Any, Literal, TypedDict
 
 
-IntentType = Literal["faq", "callback", "unknown"]
+IntentType = Literal["faq", "callback", "vision", "unknown"]
 NextActionType = Literal[
     "run_faq",
     "ask_name",
@@ -14,21 +16,25 @@ ActiveFlowType = Literal["callback"]
 AwaitingFieldType = Literal["name", "phone"]
 
 
-class CallFlowState(TypedDict):
+class CallFlowState(TypedDict, total=False):
     session_id: str
     user_input: str
 
-    intent: Optional[IntentType]
-    next_action: Optional[NextActionType]
+    intent: IntentType | None
+    next_action: NextActionType | None
 
-    active_flow: Optional[ActiveFlowType]
-    awaiting_field: Optional[AwaitingFieldType]
+    active_flow: ActiveFlowType | None
+    awaiting_field: AwaitingFieldType | None
 
-    collected_name: Optional[str]
-    collected_phone: Optional[str]
+    collected_name: str | None
+    collected_phone: str | None
 
-    tool_result: Optional[dict[str, Any]]
-    final_response: Optional[str]
+    tool_result: dict[str, Any] | None
+    final_response: str | None
+
+
+# graph.py 호환용 별칭
+AppState = CallFlowState
 
 
 def make_initial_state(session_id: str, message: str = "") -> CallFlowState:
