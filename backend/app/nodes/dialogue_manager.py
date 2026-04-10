@@ -48,7 +48,7 @@ def dialogue_manager(state: dict[str, Any]) -> dict[str, Any]:
     # --------------------------------------------------------------
     # 2. intent별 다음 행동 결정
     # --------------------------------------------------------------
-    if intent == "callback":
+    if intent == "callback" or active_flow == "callback":
         next_action, updated_flow, updated_slots = _decide_callback_action(
             user_input=user_input,
             active_flow=active_flow,
@@ -237,23 +237,39 @@ def _extract_possible_name(user_input: str) -> str:
         return ""
 
     # 너무 긴 문장은 이름으로 보지 않음
-    if len(text) > 20:
+    if len(text) > 12:
         return ""
+    
+    # 콜백 요청 문장/일반 서술문에서 자주 나오는 비이름 표현 제외
+    blocked_keywords = [
+        "싶어", "싶어요", "해주세요", "부탁", "연락", "통화", "상담",
+        "문의", "도와", "가능", "맞아", "아니", "네", "응",
+    ]
+    if any(keyword in text for keyword in blocked_keywords):
+        # 단, 아래 명시 패턴에서 다시 잡히는 경우는 허용
+        pass
 
     patterns = [
-        r"제 이름은\s*([가-힣]{2,5})",
-        r"이름은\s*([가-힣]{2,5})",
-        r"([가-힣]{2,5})입니다",
-        r"([가-힣]{2,5})이에요",
-        r"([가-힣]{2,5})예요",
-        r"([가-힣]{2,5})요",
-        r"^([가-힣]{2,5})$",
+        r"제 이름은\s*([가-힣]{2,4})\s*(?:입니다|이에요|예요)?$",
+        r"이름은\s*([가-힣]{2,4})\s*(?:입니다|이에요|예요)?$",
+        r"성함은\s*([가-힣]{2,4})\s*(?:입니다|이에요|예요)?$",
+        r"^([가-힣]{2,4})입니다$",
+        r"^([가-힣]{2,4})이에요$",
+        r"^([가-힣]{2,4})예요$",
+        r"^([가-힣]{2,4})$",
     ]
 
     for pattern in patterns:
         match = re.search(pattern, text)
         if match:
-            return match.group(1).strip()
+            candidate = match.group(1).strip()
+
+            if candidate in {
+                "싶어", "문의", "상담", "연락", "통화", "부탁", "도움", "가능"
+            }:
+                return ""
+
+            return candidate
 
     return ""
 

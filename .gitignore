@@ -73,7 +73,6 @@ temp/
 # ========================
 # ChromaDB
 # ========================
-backend/data/chroma/*
-backend/data/faq_docs/*
+
 backend/data/knowledge_docs/*
 

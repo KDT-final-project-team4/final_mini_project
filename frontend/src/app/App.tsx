@@ -27,9 +27,17 @@ export type SystemState =
   | "completing";
 
 type SessionState = {
-  collected_name: string | null;
-  collected_phone: string | null;
-  active_flow: string | null;
+  session_id?: string;
+  tenant_id?: string;
+  intent?: string | null;
+  next_action?: string | null;
+  active_flow?: string | null;
+  collected_name?: string | null;
+  collected_phone?: string | null;
+  slots?: Record<string, any>;
+  retrieval_preview?: string;
+  guardrail_flags?: Record<string, any>;
+  debug_info?: Record<string, any>;
 };
 
 type ChatApiResponse = {
@@ -61,9 +69,12 @@ export default function App() {
   const [isVoiceActive, setIsVoiceActive] = useState(false);
 
   const [sessionState, setSessionState] = useState<SessionState>({
+    intent: null,
+    next_action: null,
     collected_name: null,
     collected_phone: null,
     active_flow: null,
+    slots: {},
   });
 
   const [lastNextAction, setLastNextAction] = useState<string | null>(null);
@@ -113,20 +124,25 @@ export default function App() {
 
     try {
       // 이전 턴 상태를 기반으로 이름/전화번호를 sessionState에 반영
-      const updatedSessionState: SessionState = { ...sessionState };
+      const updatedSessionState: SessionState = {
+        ...sessionState,
+        slots: { ...(sessionState.slots || {}) },
+      };
 
       if (lastNextAction === "ask_name") {
         updatedSessionState.collected_name = message;
+        updatedSessionState.slots!.name = message;
       }
 
       if (lastNextAction === "ask_phone") {
         updatedSessionState.collected_phone = message;
+        updatedSessionState.slots!.phone = message;
       }
 
       const data = await sendMessageToBackend(message, updatedSessionState);
       const intent = (data.session_state as any)?.intent ?? null;
       const nextAction = (data.session_state as any)?.next_action ?? null;
-      setSessionState(intent);
+      setSessionState(data.session_state as SessionState);
       setLastNextAction(nextAction);
 
       const aiMessage: MessageType = {
