@@ -16,7 +16,7 @@ def run(state):
     tool_result = state.get('tool_result')
 
     llm = ChatGoogleGenerativeAI(
-        model='gemini-2.5-flash',
+        model='models/gemini-2.5-flash',
         temperature=0.3,
         max_tokens=None,
         timeout=None,
@@ -28,19 +28,11 @@ def run(state):
 
     chain = prompt_template | llm
 
-    if tool_result:
-        response = chain.invoke({
-            'user_input': user_input,
-            'intent': intent,
-            'tool_result': tool_result
-        })
-
-    else:
-        response = chain.invoke({
-            'user_input': user_input,
-            'intent': intent
-        })
-        
+    response = chain.invoke({
+        'user_input': user_input,
+        'intent': intent,
+        'tool_result': tool_result if tool_result is not None else '',
+    })
 
     return {
         'final_response': response.content.strip()

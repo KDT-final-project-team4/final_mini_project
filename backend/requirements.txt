@@ -5,4 +5,5 @@ langgraph
 python-dotenv
 requests
 langchain-google-genai
+langchain-openai
 elevenlabs

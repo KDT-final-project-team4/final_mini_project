@@ -3,6 +3,7 @@ Twilio 음성 웹훅, Media Stream WebSocket, STT(Deepgram), LLM 응답(Gemini),
 """
 
 import base64
+import html
 import json
 import os
 
@@ -20,8 +21,8 @@ router = APIRouter()
 ELEVENLABS_API_KEY = os.getenv("ELEVENLABS_API_KEY")
 # ElevenLabs 대시보드의 Voice ID (기본: Rachel 예시 ID)
 ELEVENLABS_VOICE_ID = os.getenv("ELEVENLABS_VOICE_ID", "21m00Tcm4TlvDq8ikWAM")
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-LLM_MODEL = "gemini-2.5-flash"
+GEMINI_API_KEY = os.getenv("GOOGLE_API_KEY")
+LLM_MODEL = "models/gemini-2.5-flash"
 LLM_SYSTEM_PROMPT = """
 당신은 매우 유능하고 똑똑한 상담원입니다.
 사용자의 질문에 너무 장황하지 않게만 대답해 주세요.
@@ -37,6 +38,27 @@ LLM_SYSTEM_PROMPT = """
 """
 
 DEEPGRAM_API_KEY = os.getenv("DEEPGRAM_API_KEY")
+
+# LangGraph 콜백 플로우(dialogue_manager)에서 설정한 tool_result 안내 문구 — /voice Say에 사용
+_PENDING_VOICE_SAY: str | None = "상담원 연결 중입니다. 잠시만 기다려 주세요."
+
+
+def publish_voice_say(text: str | None) -> None:
+    """콜백 노드 이후 대화 노드에서 호출. Twilio /voice 의 <Say> 기본 문구로 쓸 수 있음."""
+    global _PENDING_VOICE_SAY
+    if text is None:
+        _PENDING_VOICE_SAY = "상담원 연결 중입니다. 잠시만 기다려 주세요."
+    else:
+        s = str(text).strip()
+        _PENDING_VOICE_SAY = s if s else "상담원 연결 중입니다. 잠시만 기다려 주세요."
+
+
+def resolve_voice_say_text(request: Request) -> str:
+    """쿼리 → 그래프에서 넣은 pending → 환경변수 → 하드코딩 순."""
+    q = request.query_params.get("say_text")
+    if q and q.strip():
+        return q.strip()
+    return _PENDING_VOICE_SAY
 
 
 class CounselContent:
@@ -112,13 +134,16 @@ def get_user_input_to_text(audio_chunk):
         return None
 
 
-@router.post("/voice")
+@router.api_route("/voice", methods=["GET", "POST"])
 async def voice_webhook(request: Request):
-    twiml_response = """<?xml version="1.0" encoding="UTF-8"?>
+    say_text = resolve_voice_say_text(request)
+    safe_say = html.escape(say_text, quote=False)
+    stream_url = "wss://ferly-coxcombic-elroy.ngrok-free.dev/media-stream"
+    twiml_response = f"""<?xml version="1.0" encoding="UTF-8"?>
     <Response>
-        <Say language="ko-KR">무한상사 담당 AI 상담원과 연결합니다. 잠시만 기다려 주세요.</Say>
+        <Say language="ko-KR">{safe_say}</Say>
         <Connect>
-            <Stream url="wss://ferly-coxcombic-elroy.ngrok-free.dev/media-stream" />
+            <Stream url="{html.escape(stream_url, quote=True)}" />
         </Connect>
     </Response>
     """
