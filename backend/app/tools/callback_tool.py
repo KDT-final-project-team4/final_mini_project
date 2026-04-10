@@ -6,4 +6,4 @@ class CallbackExemples:
 
 def callback_tool(name, phone):
     example = CallbackExemples(name, phone)
-    return f"{example.name}님 콜백 등록 완료"
+    return f"{example.name}님 콜백 등록 완료, {example.phone}번호로 연결해드릴게요."

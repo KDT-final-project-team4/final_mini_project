@@ -3,3 +3,6 @@ uvicorn
 langchain
 langgraph
 python-dotenv
+requests
+langchain-google-genai
+elevenlabs

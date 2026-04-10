@@ -14,7 +14,7 @@ def run(state):
     user_input = state.get('user_input')
 
     llm = ChatGoogleGenerativeAI(
-        model='models/gemini-2.5-pro',
+        model='models/gemini-2.5-flash',
         temperature=0,
         max_tokens=None,
         timeout=None,

@@ -3,8 +3,11 @@ from pydantic import BaseModel
 from app.nodes import intent_router
 from fastapi.middleware.cors import CORSMiddleware
 from app.graph import build_graph
+from app.tools.dialogue_tool import router as twilio_voice_router
 
 app = FastAPI()
+
+app.include_router(twilio_voice_router)
 
 app.add_middleware(
     CORSMiddleware,

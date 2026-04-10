@@ -23,26 +23,24 @@ def build_graph():
     graph.add_node('DIALOGUE_NODE', dialogue_manager_run)
     graph.add_node('RESPONSE_NODE', response_node_run)
 
-
-    # 의도(intent)에 따라 FAQ, 콜백, 비전, 일반 응답 노드로 분기
+    
+    
+    # 의도(intent)에 따라 FAQ, 전화연결, 비전, 일반 응답 노드로 분기
     graph.add_conditional_edges(
         'intent_router',
-        # 람다 함수를 사용해 state에서 intent를 즉시 꺼내 결과값으로 사용
         lambda state: state.get('intent'), 
         {
             'faq': 'FAQ_NODE',
             'callback': 'CALLBACK_NODE',
             'vision': 'VISION_NODE',
-            'dialogue': 'DIALOGUE_NODE',
-            # 만약 intent가 매핑에 없는 값일 경우를 대비한 기본값 설정 
-            None: 'RESPONSE_NODE' 
+            'default': 'RESPONSE_NODE',
         }
     )
 
     graph.add_edge('FAQ_NODE', 'RESPONSE_NODE')
-    graph.add_edge('CALLBACK_NODE', 'RESPONSE_NODE')
+    graph.add_edge('CALLBACK_NODE', 'DIALOGUE_NODE')
     graph.add_edge('VISION_NODE', 'RESPONSE_NODE')
-    graph.add_edge('DIALOGUE_NODE', 'RESPONSE_NODE')
+    graph.add_edge('DIALOGUE_NODE', END)
     graph.add_edge('RESPONSE_NODE', END)
 
     return graph.compile()

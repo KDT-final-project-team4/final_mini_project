@@ -37,8 +37,8 @@ os.environ["GOOGLE_API_KEY"] = os.getenv("GOOGLE_API_KEY")
 
 # state 업데이트를 위해 structure 클래스 정의
 class RouterOutput(BaseModel):
-    intent: str = Field(description="유저의 의도 (예: callback, faq, vision, dialogue, default)")
-    next_action: str = Field(description="다음에 수행할 작업 (예: CALLBACK_NODE, FAQ_NODE, VISION_NODE, DIALOGUE_NODE, RESPONSE_NODE)")
+    intent: str = Field(description="유저의 의도 (예: callback, faq, vision, default)")
+    next_action: str = Field(description="다음에 수행할 작업 (예: CALLBACK_NODE, FAQ_NODE, VISION_NODE, RESPONSE_NODE)")
     reason: str = Field(description="이 의도로 판단한 이유")
 
 
