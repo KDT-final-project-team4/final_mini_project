@@ -4,6 +4,7 @@ from typing import Any
 
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_openai import ChatOpenAI
+from langchain_community.callbacks.manager import get_openai_callback
 
 from app.config import get_response_model
 
@@ -162,7 +163,6 @@ def _build_faq_response(
     should_fallback = evidence_result.get("should_fallback", False)
     reason = evidence_result.get("reason", "")
     selected_evidence = evidence_result.get("selected_evidence", [])
-    evidence_summary = evidence_result.get("evidence_summary", "")
 
     if not has_evidence or reason == "no_results":
         return (
@@ -184,7 +184,7 @@ def _build_faq_response(
 
     context_blocks: list[str] = []
 
-    for idx, item in enumerate(selected_evidence, start=1):
+    for idx, item in enumerate(selected_evidence[:1], start=1):
         meta_parts = []
 
         if item.get("file_name"):
@@ -197,7 +197,7 @@ def _build_faq_response(
             meta_parts.append(f"유사도: {item['score']:.3f}")
 
         meta_line = " | ".join(meta_parts)
-        content = (item.get("content") or "").strip()
+        content = (item.get("content") or "").strip()[:600]
 
         block = f"[근거 {idx}]"
         if meta_line:
@@ -209,17 +209,10 @@ def _build_faq_response(
     context_text = "\n\n".join(context_blocks)
 
     system_prompt = """
-너는 PDF 매뉴얼 기반 고객상담 AI다.
-
-반드시 아래 규칙을 따른다.
-1. 제공된 근거 안에서만 답한다.
-2. 근거에 없는 내용을 지어내지 않는다.
-3. 한국어로 자연스럽고 친절하게 답한다.
-4. 사용자가 이해하기 쉽게 절차를 단계별로 정리한다.
-5. 근거가 절차형 문서라면 "먼저 / 다음으로 / 마지막으로" 식으로 설명한다.
-6. 불필요하게 출처를 길게 나열하지 말고, 필요할 때만 짧게 언급한다.
-7. 문장 끝은 상담원처럼 정중하게 마무리한다.
-"""
+        너는 PDF 매뉴얼 기반 고객상담 AI다.
+        제공된 근거 안에서만 답하고, 없는 내용은 지어내지 마라.
+        절차형 질문이면 순서대로 짧고 명확하게 설명하라.
+    """
 
     human_prompt = f"""
 사용자 질문:
@@ -228,20 +221,25 @@ def _build_faq_response(
 검색 근거:
 {context_text}
 
-검색 요약:
-{evidence_summary}
-
 위 근거만 바탕으로 사용자에게 답변해 주세요.
-질문이 절차형이라면 처리 순서를 중심으로 설명해 주세요.
+질문이 절차형이면 처리 순서를 중심으로 짧고 명확하게 설명해 주세요.
 """
 
     try:
-        response = _llm.invoke(
-            [
-                SystemMessage(content=system_prompt.strip()),
-                HumanMessage(content=human_prompt.strip()),
-            ]
-        )
+        with get_openai_callback() as cb:
+            response = _llm.invoke(
+                [
+                    SystemMessage(content=system_prompt.strip()),
+                    HumanMessage(content=human_prompt.strip()),
+                ]
+            )
+
+        print("\n[RESPONSE NODE TOKEN USAGE]")
+        print("prompt_tokens:", cb.prompt_tokens)
+        print("completion_tokens:", cb.completion_tokens)
+        print("total_tokens:", cb.total_tokens)
+        print("total_cost:", cb.total_cost)
+
         content = (response.content or "").strip()
         if content:
             return content

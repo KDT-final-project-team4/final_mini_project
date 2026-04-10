@@ -5,6 +5,7 @@ from typing import Any
 
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_openai import ChatOpenAI
+from langchain_community.callbacks.manager import get_openai_callback
 
 from app.config import get_router_model
 
@@ -136,12 +137,19 @@ def intent_router(state: dict[str, Any]) -> dict[str, Any]:
     """
 
     try:
-        response = _router_llm.invoke(
-            [
-                SystemMessage(content=system_prompt.strip()),
-                HumanMessage(content=human_prompt.strip()),
-            ]
-        )
+        with get_openai_callback() as cb:
+            response = _router_llm.invoke(
+                [
+                    SystemMessage(content=system_prompt.strip()),
+                    HumanMessage(content=human_prompt.strip()),
+                ]
+            )
+
+        print("\n[INTENT ROUTER TOKEN USAGE]")
+        print("prompt_tokens:", cb.prompt_tokens)
+        print("completion_tokens:", cb.completion_tokens)
+        print("total_tokens:", cb.total_tokens)
+        print("total_cost:", cb.total_cost)
 
         raw_content = (response.content or "").strip()
         parsed = _safe_parse_intent_json(raw_content)
@@ -164,6 +172,12 @@ def intent_router(state: dict[str, Any]) -> dict[str, Any]:
             "intent": predicted_intent,
             "reason": reason,
             "raw_response": raw_content,
+            "token_usage": {
+                "prompt_tokens": cb.prompt_tokens,
+                "completion_tokens": cb.completion_tokens,
+                "total_tokens": cb.total_tokens,
+                "total_cost": cb.total_cost,
+            },
         }
 
         return {
