@@ -9,3 +9,4 @@ chromadb
 langchain-community 
 tiktoken
 langchain_chroma
+pypdf

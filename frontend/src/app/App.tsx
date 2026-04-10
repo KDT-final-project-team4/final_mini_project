@@ -33,10 +33,9 @@ type SessionState = {
 };
 
 type ChatApiResponse = {
-  response: string;
-  intent?: string | null;
-  next_action?: string | null;
+  answer: string;
   session_state: SessionState;
+  debug_info?: Record<string, any> | null;
 };
 
 const API_BASE_URL = "http://127.0.0.1:8000";
@@ -125,22 +124,23 @@ export default function App() {
       }
 
       const data = await sendMessageToBackend(message, updatedSessionState);
-
-      setSessionState(data.session_state);
-      setLastNextAction(data.next_action ?? null);
+      const intent = (data.session_state as any)?.intent ?? null;
+      const nextAction = (data.session_state as any)?.next_action ?? null;
+      setSessionState(intent);
+      setLastNextAction(nextAction);
 
       const aiMessage: MessageType = {
         id: (Date.now() + 1).toString(),
         type: "ai",
-        content: data.response,
+        content: data.answer,
         timestamp: new Date(),
         structuredData: {
           type:
-            data.intent === "faq"
+            intent === "faq"
               ? "faq"
-              : data.intent === "callback"
+              : intent === "callback"
               ? "callback"
-              : data.next_action === "route_vision"
+              : nextAction === "route_vision"
               ? "vision"
               : "structured",
         },
@@ -149,12 +149,11 @@ export default function App() {
       setMessages((prev) => [...prev, aiMessage]);
 
       // UI 상태 반영
-      if (data.next_action === "route_vision") {
+      if (nextAction === "route_vision") {
         setSystemState("waiting-image");
         setIsVisionModalOpen(true);
       } else if (
-        data.next_action === "ask_name" ||
-        data.next_action === "ask_phone"
+        nextAction === "ask_name" || nextAction === "ask_phone"
       ) {
         setSystemState("collecting-info");
       } else {
