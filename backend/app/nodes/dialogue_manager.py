@@ -4,9 +4,13 @@ import re
 
 try:
     from app.state import CallFlowState
+    from app.config import get_logger, settings
 except ImportError:  # local test fallback
     from state import CallFlowState
+    from config import get_logger, settings
 
+
+logger = get_logger(__name__)
 
 _PHONE_PATTERN = re.compile(r"^[0-9\-\s]+$")
 _NAME_PATTERN = re.compile(r"^[A-Za-z가-힣\s]{2,20}$")
@@ -60,6 +64,19 @@ NAME_BLOCK_KEYWORDS = (
     "운영",
     "영업",
 )
+
+
+def _state_summary(state: CallFlowState) -> dict:
+    return {
+        "session_id": state.get("session_id"),
+        "user_input": state.get("user_input"),
+        "intent": state.get("intent"),
+        "next_action": state.get("next_action"),
+        "active_flow": state.get("active_flow"),
+        "awaiting_field": state.get("awaiting_field"),
+        "collected_name": state.get("collected_name"),
+        "collected_phone": state.get("collected_phone"),
+    }
 
 
 def _clean_text(text: str | None) -> str:
@@ -129,6 +146,12 @@ def _handle_callback_flow(state: CallFlowState) -> CallFlowState:
     user_input = _clean_text(state.get("user_input"))
     awaiting_field = state.get("awaiting_field")
 
+    logger.info(
+        "dialogue_manager.callback_flow awaiting_field=%s user_input=%s",
+        awaiting_field,
+        user_input,
+    )
+
     if awaiting_field == "name":
         if not user_input:
             state["next_action"] = "ask_name"
@@ -184,45 +207,45 @@ def _handle_callback_flow(state: CallFlowState) -> CallFlowState:
 
 
 def run(state: CallFlowState) -> CallFlowState:
-    """
-    Dialogue Manager Node
+    logger.info("dialogue_manager.enter state=%s", _state_summary(state))
 
-    역할
-    - state를 보고 다음 액션(next_action)을 결정한다.
-    - active_flow가 있으면 현재 흐름을 우선 처리한다.
-
-    next_action 규칙
-    - faq -> run_faq
-    - callback 시작 -> ask_name
-    - callback 이름 수집 완료 -> ask_phone
-    - callback 이름/전화번호 수집 완료 -> run_callback
-    - vision -> run_vision
-    - unknown -> run_vision
-    """
     state["tool_result"] = None
     state["final_response"] = None
 
     if state.get("active_flow") == "callback":
-        return _handle_callback_flow(state)
+        result = _handle_callback_flow(state)
+        logger.info("dialogue_manager.exit callback state=%s", _state_summary(result))
+        return result
 
     intent = state.get("intent")
 
     if intent == "faq":
         state["next_action"] = "run_faq"
+        logger.info("dialogue_manager.route faq state=%s", _state_summary(state))
         return state
 
     if intent == "callback":
-        return _start_callback_flow(state)
+        result = _start_callback_flow(state)
+        logger.info("dialogue_manager.route callback_start state=%s", _state_summary(result))
+        return result
 
     if intent == "vision":
         state["next_action"] = "run_vision"
+        logger.info("dialogue_manager.route vision state=%s", _state_summary(state))
         return state
 
-    state["next_action"] = "run_vision"
+    # unknown fallback
+    if settings.UNKNOWN_FALLBACK == "vision":
+        state["next_action"] = "run_vision"
+        logger.info("dialogue_manager.route unknown->vision state=%s", _state_summary(state))
+        return state
+
+    state["next_action"] = "finish"
+    state["final_response"] = "도움을 위해 조금 더 자세히 말씀해주시거나 사진을 보내주세요."
+    logger.info("dialogue_manager.route unknown->reply state=%s", _state_summary(state))
     return state
 
 
-# graph.py 호환용 별칭
 dialogue_manager = run
 
 
@@ -253,25 +276,13 @@ if __name__ == "__main__":
             "final_response": None,
         },
         {
-            "session_id": "demo-2",
-            "user_input": "홍길동",
-            "intent": "callback",
+            "session_id": "demo-3",
+            "user_input": "hello",
+            "intent": "unknown",
             "next_action": None,
-            "active_flow": "callback",
-            "awaiting_field": "name",
+            "active_flow": None,
+            "awaiting_field": None,
             "collected_name": None,
-            "collected_phone": None,
-            "tool_result": None,
-            "final_response": None,
-        },
-        {
-            "session_id": "demo-2",
-            "user_input": "010-1234-5678",
-            "intent": "callback",
-            "next_action": None,
-            "active_flow": "callback",
-            "awaiting_field": "phone",
-            "collected_name": "홍길동",
             "collected_phone": None,
             "tool_result": None,
             "final_response": None,
