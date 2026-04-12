@@ -32,7 +32,7 @@ export default function App() {
     {
       id: '1',
       type: 'ai',
-      content: 'Welcome to CallFlow AI Support. How can I assist you today?',
+      content: 'CallFlow AI 상담원입니다. 무엇을 도와드릴까요?',
       timestamp: new Date(),
       structuredData: {
         type: 'structured',
@@ -47,6 +47,10 @@ export default function App() {
   const [isVisionModalOpen, setIsVisionModalOpen] = useState(false);
   const [isCallbackFlowOpen, setIsCallbackFlowOpen] = useState(false);
   const [isVoiceActive, setIsVoiceActive] = useState(false);
+  
+  // 🌟 [추가] 백엔드의 상태(기억)를 저장할 변수
+  const [langGraphState, setLangGraphState] = useState<any>({});
+  
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -57,103 +61,9 @@ export default function App() {
     scrollToBottom();
   }, [messages]);
 
-  const simulateAIResponse = (userMessage: string) => {
-    const lowerMessage = userMessage.toLowerCase();
-    
-    // Simulate processing
-    setSystemState('analyzing');
-    
-    setTimeout(() => {
-      let aiResponse: MessageType;
-      
-      // FAQ Response
-      if (lowerMessage.includes('refund') || lowerMessage.includes('return')) {
-        setSystemState('processing');
-        setTimeout(() => {
-          aiResponse = {
-            id: Date.now().toString(),
-            type: 'ai',
-            content: 'I can help you with refund requests.',
-            timestamp: new Date(),
-            structuredData: {
-              type: 'faq',
-              data: {
-                title: 'Refund Policy',
-                steps: [
-                  'Refunds are processed within 5-7 business days',
-                  'Original payment method will be credited',
-                  'Items must be returned in original condition'
-                ]
-              }
-            }
-          };
-          setMessages(prev => [...prev, aiResponse]);
-          setSystemState('idle');
-        }, 1500);
-      }
-      // Callback Flow
-      else if (lowerMessage.includes('call') || lowerMessage.includes('speak') || lowerMessage.includes('talk')) {
-        setSystemState('collecting-info');
-        setTimeout(() => {
-          aiResponse = {
-            id: Date.now().toString(),
-            type: 'ai',
-            content: 'I understand you would like to speak with a representative. Let me collect your information for a callback.',
-            timestamp: new Date(),
-            structuredData: {
-              type: 'callback'
-            }
-          };
-          setMessages(prev => [...prev, aiResponse]);
-          setSystemState('callback-flow');
-          setIsCallbackFlowOpen(true);
-        }, 1500);
-      }
-      // Vision Trigger
-      else if (lowerMessage.includes('damaged') || lowerMessage.includes('broken') || lowerMessage.includes('defect')) {
-        setSystemState('waiting-image');
-        setTimeout(() => {
-          aiResponse = {
-            id: Date.now().toString(),
-            type: 'ai',
-            content: 'I need to assess the issue visually. Please upload an image of the damaged item.',
-            timestamp: new Date(),
-            structuredData: {
-              type: 'vision'
-            }
-          };
-          setMessages(prev => [...prev, aiResponse]);
-          setIsVisionModalOpen(true);
-        }, 1500);
-      }
-      // Generic Response
-      else {
-        setSystemState('processing');
-        setTimeout(() => {
-          aiResponse = {
-            id: Date.now().toString(),
-            type: 'ai',
-            content: 'I\'m analyzing your request. Our support system is designed to provide structured assistance.',
-            timestamp: new Date(),
-            structuredData: {
-              type: 'structured',
-              data: {
-                suggestions: [
-                  'Request a callback',
-                  'Check refund status',
-                  'Report damaged item'
-                ]
-              }
-            }
-          };
-          setMessages(prev => [...prev, aiResponse]);
-          setSystemState('idle');
-        }, 1500);
-      }
-    }, 800);
-  };
-
-  const handleSendMessage = (message: string) => {
+  // 🌟 [핵심] 실제 백엔드 API와 통신하는 함수
+  const handleSendMessage = async (message: string) => {
+    // 1. 사용자 메시지를 화면에 추가
     const userMessage: MessageType = {
       id: Date.now().toString(),
       type: 'user',
@@ -162,80 +72,72 @@ export default function App() {
     };
     
     setMessages(prev => [...prev, userMessage]);
-    simulateAIResponse(message);
+    setSystemState('analyzing'); // 로딩 상태 켜기
+
+    try {
+      // 2. 백엔드 API 호출 (메시지와 함께 프론트의 '기억'을 전달)
+      const response = await fetch("http://localhost:8000/chat", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ 
+          message: message,
+          state: langGraphState // 프론트가 보관하던 이전 상태
+        })
+      });
+
+      const data = await response.json();
+      
+      // 3. 백엔드가 준 새로운 기억으로 업데이트
+      setLangGraphState(data.state);
+
+      // 4. 백엔드 응답 메시지를 화면에 추가
+      const aiResponse: MessageType = {
+        id: Date.now().toString(),
+        type: 'ai',
+        content: data.response,
+        timestamp: new Date(),
+      };
+      setMessages(prev => [...prev, aiResponse]);
+      
+    } catch (error) {
+      console.error("API 호출 에러:", error);
+      const errorMsg: MessageType = {
+        id: Date.now().toString(),
+        type: 'system',
+        content: "서버와 연결할 수 없습니다. 백엔드 서버(FastAPI)가 켜져 있는지 확인해주세요.",
+        timestamp: new Date(),
+      };
+      setMessages(prev => [...prev, errorMsg]);
+    } finally {
+      setSystemState('idle'); // 통신 끝나면 로딩 상태 끄기
+    }
   };
 
+  // 기존 모의(Mock) 기능들은 통신 에러를 막기 위해 껍데기만 남겨둡니다.
+  // (과제 핵심인 텍스트 채팅 로직은 위의 handleSendMessage에서 모두 처리됩니다.)
   const handleVoiceInput = () => {
     setIsVoiceActive(true);
-    
-    // Simulate voice recognition
     setTimeout(() => {
       setIsVoiceActive(false);
-      const voiceMessage = "I need help with a refund";
-      handleSendMessage(voiceMessage);
+      handleSendMessage("운영시간 알려줘"); // 음성 테스트용 더미 텍스트
     }, 2000);
   };
 
   const handleImageUpload = (file: File) => {
     setIsVisionModalOpen(false);
-    setSystemState('processing');
-    
     const systemMessage: MessageType = {
       id: Date.now().toString(),
       type: 'system',
-      content: `Image uploaded: ${file.name}`,
+      content: `이미지 업로드됨: ${file.name}`,
       timestamp: new Date()
     };
     setMessages(prev => [...prev, systemMessage]);
-    
-    setTimeout(() => {
-      const aiResponse: MessageType = {
-        id: Date.now().toString(),
-        type: 'ai',
-        content: 'Thank you for uploading the image. I can see the damage to the item. Based on our analysis, you are eligible for a full refund or replacement.',
-        timestamp: new Date(),
-        structuredData: {
-          type: 'structured',
-          data: {
-            analysis: 'Item damage confirmed',
-            actions: ['Full refund available', 'Replacement option available', 'No return shipping fee']
-          }
-        }
-      };
-      setMessages(prev => [...prev, aiResponse]);
-      setSystemState('idle');
-    }, 2000);
   };
 
   const handleCallbackComplete = (data: { name: string; phone: string }) => {
     setIsCallbackFlowOpen(false);
-    setSystemState('completing');
-    
-    const systemMessage: MessageType = {
-      id: Date.now().toString(),
-      type: 'system',
-      content: `Callback request submitted for ${data.name}`,
-      timestamp: new Date()
-    };
-    setMessages(prev => [...prev, systemMessage]);
-    
-    setTimeout(() => {
-      const aiResponse: MessageType = {
-        id: Date.now().toString(),
-        type: 'ai',
-        content: `Your callback request has been confirmed. A representative will contact you at ${data.phone} within 24 hours.`,
-        timestamp: new Date(),
-        structuredData: {
-          type: 'structured',
-          data: {
-            confirmation: true,
-            reference: `CB-${Date.now().toString().slice(-6)}`
-          }
-        }
-      };
-      setMessages(prev => [...prev, aiResponse]);
-      setSystemState('idle');
-    }, 1500);
   };
 
   return (
@@ -258,21 +160,16 @@ export default function App() {
         disabled={systemState !== 'idle' && systemState !== 'waiting-image'}
       />
       
+      {/* 팝업 모달들은 백엔드 연동 전용으로 껍데기만 유지 */}
       <VisionUploadModal
         isOpen={isVisionModalOpen}
-        onClose={() => {
-          setIsVisionModalOpen(false);
-          setSystemState('idle');
-        }}
+        onClose={() => setIsVisionModalOpen(false)}
         onUpload={handleImageUpload}
       />
       
       <CallbackFlow
         isOpen={isCallbackFlowOpen}
-        onClose={() => {
-          setIsCallbackFlowOpen(false);
-          setSystemState('idle');
-        }}
+        onClose={() => setIsCallbackFlowOpen(false)}
         onComplete={handleCallbackComplete}
       />
       

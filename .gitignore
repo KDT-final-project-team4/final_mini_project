@@ -30,6 +30,95 @@ build/
 htmlcov/
 
 # ========================
+# Database / Vector Store (추가된 부분)
+# ========================
+# Chroma DB 폴더 및 로컬 데이터베이스
+chroma_db/
+.chroma/
+*.sqlite
+*.sqlite3
+*.db
+
+# ========================
+# Node.js / Frontend
+# ========================
+node_modules/
+package-lock.json
+
+# 빌드 결과물
+frontend/dist/
+frontend/build/
+frontend/.vite/
+
+# 패키지 매니저 캐시
+.pnpm-store/
+.yarn/
+.npm/
+
+# ========================
+# IDE / 에디터
+# ========================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ========================
+# OS
+# ========================
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ========================
+# 로그 / 임시 파일
+# ========================
+*.log
+logs/
+tmp/
+temp/# ========================
+# Python / Backend
+# ========================
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+
+# 가상환경
+.venv/
+venv/
+env/
+.env/
+
+# 환경 변수 (API 키 등 민감 정보)
+.env
+.env.*
+!.env.example
+
+# Python 패키지 빌드
+*.egg-info/
+dist/
+build/
+*.whl
+
+# 테스트/커버리지
+.pytest_cache/
+.coverage
+htmlcov/
+
+# ========================
+# Database / Vector Store (추가된 부분)
+# ========================
+# Chroma DB 폴더 및 로컬 데이터베이스
+chroma_db/
+.chroma/
+*.sqlite
+*.sqlite3
+*.db
+
+# ========================
 # Node.js / Frontend
 # ========================
 node_modules/

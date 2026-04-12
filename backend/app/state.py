@@ -1,6 +1,6 @@
-from typing import Optional, TypedDict
+from typing import TypedDict, Optional
 
-class CallFlowState(TypedDict):
+class State(TypedDict):
     user_input: str
     intent: Optional[str]
     next_action: Optional[str]
