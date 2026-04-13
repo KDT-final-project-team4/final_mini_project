@@ -75,4 +75,4 @@ temp/
 # ========================
 
 backend/data/knowledge_docs/*
-
+backend/data/chroma/*
