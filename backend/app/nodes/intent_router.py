@@ -1,44 +1,12 @@
-from app.prompts.intent_router_prompt import get_intent_prompt
-from dotenv import load_dotenv
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_google_genai import ChatGoogleGenerativeAI
-
-# Gemini 일일 한도 복구 후 intent를 다시 쓸 때: 아래 import 주석 해제 + llm 블록 교체
-# from langchain_google_genai import ChatGoogleGenerativeAI
 import re
-
-from pydantic import BaseModel, Field
 from typing import Optional
-import os
 
-"""
-    모델명: models/gemini-2.5-flash
-모델명: models/gemini-2.5-pro
-모델명: models/gemini-2.0-flash
-모델명: models/gemini-2.0-flash-001
-모델명: models/gemini-2.0-flash-lite-001
-모델명: models/gemini-2.0-flash-lite
-모델명: models/gemini-2.5-flash-preview-tts
-모델명: models/gemini-2.5-pro-preview-tts
-모델명: models/gemini-flash-latest
-모델명: models/gemini-flash-lite-latest
-모델명: models/gemini-pro-latest
-모델명: models/gemini-2.5-flash-lite
-모델명: models/gemini-2.5-flash-image
-모델명: models/gemini-3-pro-preview
-모델명: models/gemini-3-flash-preview
-모델명: models/gemini-3.1-pro-preview
-모델명: models/gemini-3.1-pro-preview-customtools
-모델명: models/gemini-3.1-flash-lite-preview
-모델명: models/gemini-3-pro-image-preview
-모델명: models/gemini-3.1-flash-image-preview
-모델명: models/gemini-robotics-er-1.5-preview
-모델명: models/gemini-2.5-computer-use-preview-10-2025
-    """
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_openai import ChatOpenAI
+from pydantic import BaseModel, Field
 
-load_dotenv()
-# Gemini 재사용 시 ChatGoogleGenerativeAI가 GOOGLE_API_KEY를 읽도록 유지
-os.environ["GOOGLE_API_KEY"] = os.getenv("GOOGLE_API_KEY") or ""
+from app.config import FAQ_LLM_MODEL
+from app.prompts.intent_router_prompt import get_intent_prompt
 
 
 def _normalize_phone(raw: str | None) -> str | None:
@@ -90,11 +58,10 @@ def run(state):
         else "없음"
     )
 
-    llm = ChatGoogleGenerativeAI(
-        model="models/gemini-2.5-flash",
-        temperature=0.3,
-        max_tokens=None,
-        timeout=None,
+    # ChatGoogleGenerativeAI(Gemini)에 gpt-4o-mini 같은 OpenAI 모델명을 넣으면 API 오류가 납니다.
+    llm = ChatOpenAI(
+        model=FAQ_LLM_MODEL,
+        temperature=0,
         max_retries=2,
     )
 

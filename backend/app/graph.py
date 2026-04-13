@@ -13,36 +13,34 @@ def build_graph():
 
     graph = StateGraph(CallFlowState)
 
-    graph.add_node('intent_router', intent_router_run)
-    graph.add_edge(START, 'intent_router')
+    graph.add_node("intent_router", intent_router_run)
+    graph.add_edge(START, "intent_router")
 
     # node 등록
-    graph.add_node('FAQ_NODE', faq_node_run)
-    graph.add_node('CALLBACK_NODE', callback_node_run)
-    graph.add_node('VISION_NODE', vision_node_run)
-    graph.add_node('DIALOGUE_NODE', dialogue_manager_run)
-    graph.add_node('RESPONSE_NODE', response_node_run)
+    graph.add_node("FAQ_NODE", faq_node_run)
+    graph.add_node("CALLBACK_NODE", callback_node_run)
+    graph.add_node("VISION_NODE", vision_node_run)
+    graph.add_node("DIALOGUE_NODE", dialogue_manager_run)
+    graph.add_node("RESPONSE_NODE", response_node_run)
 
-    
-    
     # 의도(intent)에 따라 FAQ, 전화연결, 비전, 일반 응답 노드로 분기
     graph.add_conditional_edges(
-        'intent_router',
-        lambda state: state.get('intent'), 
+        "intent_router",
+        lambda state: state.get("intent"),
         {
-            'faq': 'FAQ_NODE',
-            'callback': 'CALLBACK_NODE',
-            'vision': 'VISION_NODE',
-            'default': 'RESPONSE_NODE',
-        }
+            "faq": "FAQ_NODE",
+            "callback": "CALLBACK_NODE",
+            "vision": "VISION_NODE",
+            "default": "RESPONSE_NODE",
+        },
     )
 
-    graph.add_edge('FAQ_NODE', 'RESPONSE_NODE')
-    graph.add_edge('CALLBACK_NODE', 'DIALOGUE_NODE')
-    graph.add_edge('VISION_NODE', 'RESPONSE_NODE')
-    graph.add_edge('DIALOGUE_NODE', END)
-    graph.add_edge('RESPONSE_NODE', END)
+    # FAQ_NODE에서 이미 약관 검색 + 답변 생성까지 끝남. RESPONSE_NODE로 가면
+    # tool_result 없이 final_response만 다시 만들어져 검색 답변이 덮어씌워짐.
+    graph.add_edge("FAQ_NODE", END)
+    graph.add_edge("CALLBACK_NODE", "DIALOGUE_NODE")
+    graph.add_edge("VISION_NODE", "RESPONSE_NODE")
+    graph.add_edge("DIALOGUE_NODE", "RESPONSE_NODE")
+    graph.add_edge("RESPONSE_NODE", END)
 
     return graph.compile()
-
-

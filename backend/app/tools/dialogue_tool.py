@@ -8,13 +8,10 @@ import json
 import os
 
 import requests
-from dotenv import load_dotenv
 from elevenlabs import ElevenLabs
 from fastapi import APIRouter, Request, Response, WebSocket
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_google_genai import ChatGoogleGenerativeAI
-
-load_dotenv()
 
 router = APIRouter()
 

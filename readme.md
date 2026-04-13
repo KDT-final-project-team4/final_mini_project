@@ -1,281 +1,179 @@
-# 📌 CallFlow Mini – 팀원 공통 과제 안내 (LangGraph 기반)
+# CallFlow Mini — 상담 흐름 & RAG FAQ 백엔드
+
+FastAPI와 **LangGraph**로 사용자 발화를 **의도(intent)** 에 따라 분기하고, FAQ는 **PDF 약관을 Chroma에 넣은 뒤 벡터 검색(MMR)** 으로 근거를 찾아 **OpenAI**로 답을 생성하는 구조입니다. Twilio 음성 웹훅·Media Stream(STT/TTS)은 별도 라우터로 동작합니다.
 
 ---
 
-## 🎯 이 과제의 목적
+## 주요 기능
 
-이 과제는 기능을 만드는 것이 아니라,  
-다음 5가지를 직접 경험하면서 이해하는 것이 목표다.
-
-- 멀티에이전트 구조가 왜 필요한지
-- LangGraph가 왜 필요한지
-- state 기반 흐름이 어떻게 작동하는지
-- agent와 tool의 역할 차이
-- 프론트가 있어도 백엔드 구조가 없으면 왜 의미가 없는지
-
-👉 한 줄 요약: **“챗봇이 아니라 상담 시스템을 직접 만들어보는 과제”**
+| 영역 | 설명 |
+|------|------|
+| **의도 분류** | `intent_router`: `faq` / `callback` / `vision` / `default` (구조화 출력, OpenAI `gpt-4o-mini`) |
+| **FAQ (RAG)** | 질문에서 키워드 추출 → Chroma MMR 검색 → 검색 결과를 바탕으로 답변 생성 (OpenAI) |
+| **콜백** | 이름·전화 수집 후 `callback_tool`, 이어서 `dialogue_manager`에서 Twilio 안내 문구 연동 |
+| **일반 응답** | `default` → `RESPONSE_NODE` (Gemini) |
+| **비전** | `vision_node` + `vision_tool` (플레이스홀더/목업 성격) |
+| **음성** | `dialogue_tool`: `/voice` TwiML, `/media-stream` WebSocket, Deepgram STT, ElevenLabs TTS, Gemini 대화 |
 
 ---
 
-## 📦 해야 할 일 (핵심)
+## 아키텍처 (LangGraph)
 
-모든 팀원은 아래를 구현해야 한다.
-
-### 1. LangGraph 기반 백엔드 구현
-- Intent Router Node
-- Dialogue Manager Node
-- Tool Nodes
-- Response Node
-
----
-
-### 2. 기존 프론트와 연결
-- 새 UI 만들지 않는다
-- 제공된 frontend 그대로 사용
-- `/chat` API 연결만 한다
-
----
-
-### 3. 3가지 시나리오 동작시키기
-- FAQ
-- Callback (이름 → 전화번호)
-- Vision Trigger (mock)
-
----
-
-## 🧠 전체 시스템 구조
-
-```
-Frontend UI
-    ↓
-POST /chat
-    ↓
-FastAPI
-    ↓
-LangGraph
-
-Intent Router
-    ↓
-Dialogue Manager
-    ↓
-조건 분기
-    ├── FAQ Tool
-    ├── Callback Tool
-    ├── Vision Trigger
-    ↓
-Response Node
+```mermaid
+flowchart LR
+  START --> intent_router
+  intent_router -->|faq| FAQ_NODE
+  intent_router -->|callback| CALLBACK_NODE
+  intent_router -->|vision| VISION_NODE
+  intent_router -->|default| RESPONSE_NODE
+  FAQ_NODE --> END
+  CALLBACK_NODE --> DIALOGUE_NODE
+  VISION_NODE --> RESPONSE_NODE
+  DIALOGUE_NODE --> END
+  RESPONSE_NODE --> END
 ```
 
+- **FAQ** 경로는 검색·답변이 `FAQ_NODE`에서 끝나 **`END`로 바로 종료**합니다 (`RESPONSE_NODE`를 타지 않아 검색 결과가 덮어씌워지지 않도록 한 설계).
+- **콜백**은 `CALLBACK_NODE` → `DIALOGUE_NODE`에서 최종 문구 확정 후 종료.
+
 ---
 
-## 📁 폴더 구조
+## 기술 스택
+
+- **런타임**: Python 3.x, FastAPI, Uvicorn  
+- **오케스트레이션**: LangGraph, LangChain  
+- **FAQ LLM / 의도 분류**: OpenAI API (`ChatOpenAI`, 모델은 `app/config.py`의 `FAQ_LLM_MODEL`)  
+- **일반 응답·음성 대화**: Google Gemini (`langchain-google-genai`)  
+- **임베딩·벡터 DB**: `sentence-transformers` + Chroma (`langchain-community`)  
+- **PDF 로딩**: PyMuPDF (`pymupdf`)  
+- **음성(선택)**: Twilio, Deepgram, ElevenLabs  
+
+---
+
+## 디렉터리 구조
 
 ```
-callflow-mini/
-│
+final_mini_project/
 ├── backend/
-│   ├── main.py
+│   ├── main.py                 # FastAPI 진입, 최상단에서 .env 로드 (override=True)
 │   ├── requirements.txt
-│   │
+│   ├── .env                    # 로컬 전용 (커밋하지 않음)
+│   ├── data/
+│   │   ├── *.pdf               # 약관 등 (여기 두고 인덱싱)
+│   │   ├── save.py             # PDF → 청크 → Chroma 빌드
+│   │   └── chroma_db/          # 벡터 저장소 (생성됨, .gitignore 권장)
 │   └── app/
-│       ├── graph.py
-│       ├── state.py
-│       │
-│       ├── nodes/
-│       ├── tools/
-│       └── prompts/
-│
-└── frontend/
-    └── (이미 만들어진 UI 그대로 사용)
+│       ├── config.py           # 임베딩 모델, MMR 파라미터, FAQ LLM 모델명
+│       ├── graph.py            # LangGraph 정의
+│       ├── state.py            # CallFlowState
+│       ├── nodes/              # intent_router, faq_node, callback_node, …
+│       ├── tools/              # faq_tool, callback_tool, dialogue_tool, …
+│       └── prompts/            # 프롬프트 문자열
+└── frontend/                   # Vite + React (별도 README 참고)
 ```
 
 ---
 
-## 🚨 가장 중요한 규칙
+## 환경 변수
 
-### ❌ 절대 하지 말 것
-- 프론트 새로 만들기
-- OCR 붙이기
-- 이미지 분석 구현
-- DB 연결
-- 인증 구현
-- 복잡하게 만들기
+`backend/.env`에 두고, **`main.py`가 앱 import 전에** `backend/.env`를 읽습니다 (`override=True`로 OS에 남아 있는 동일 이름 변수보다 파일이 우선).
 
----
+| 변수 | 용도 |
+|------|------|
+| `OPENAI_API_KEY` | 의도 분류, FAQ 키워드/답변 (`ChatOpenAI`) |
+| `GOOGLE_API_KEY` | Gemini — `response_node`, `dialogue_tool` 음성 대화 등 |
+| `DEEPGRAM_API_KEY` | Twilio 스트림 STT |
+| `ELEVENLABS_API_KEY` | TTS (선택: `ELEVENLABS_VOICE_ID`) |
+| `PING_VOICE_WEBHOOK` | `true` 등이면 콜백 후 로컬에서 `/voice` 확인용 GET (선택) |
+| `API_BASE_URL` | 위 ping 시 호출할 베이스 URL (기본 `http://localhost:8000`) |
 
-### ✅ 반드시 할 것
-- LangGraph 사용
-- state 기반 흐름 구현
-- node / tool 역할 분리
-- 기존 프론트 연결
+`.env`는 저장소에 올리지 마세요. `.gitignore`에 포함되어 있습니다.
 
 ---
 
-## 🧩 반드시 구현해야 하는 구성
+## 설치 및 실행
 
----
+### 1) 백엔드
 
-### 1️⃣ State
+```bash
+cd backend
+python -m venv .venv
+.venv\Scripts\activate          # Windows
+pip install -r requirements.txt
+```
 
-```python
-state = {
-  "user_input": "",
-  "intent": None,
-  "next_action": None,
-  "collected_name": None,
-  "collected_phone": None,
-  "tool_result": None,
-  "final_response": None
+### 2) PDF → Chroma 인덱스 (FAQ 최초 1회 또는 PDF 변경 시)
+
+`backend/data/`에 `.pdf` 파일을 넣은 뒤:
+
+```bash
+cd backend
+python data/save.py
+```
+
+- 임베딩 모델은 `app/config.py`의 `EMBED_MODEL`과 **검색 시(`faq_tool`) 동일**해야 합니다.  
+- 모델을 바꾼 뒤에는 **반드시 인덱스를 다시 생성**하세요.
+
+### 3) API 서버
+
+```bash
+cd backend
+uvicorn main:app --reload --port 8000
+```
+
+### 4) 채팅 API 예시
+
+`POST /chat`  
+Body (JSON):
+
+```json
+{
+  "message": "이용요금 연체하면 어떻게 돼?",
+  "collected_name": null,
+  "collected_phone": null
 }
 ```
 
----
+응답:
 
-### 2️⃣ Intent Router Node
+```json
+{ "response": "…최종 텍스트…" }
+```
 
-입력 문장을 아래 3개 중 하나로 분류:
+### 5) 프론트엔드 (선택)
 
-- faq
-- callback
-- unknown
+```bash
+cd frontend
+npm install
+npm run dev
+```
 
----
-
-### 3️⃣ Dialogue Manager Node
-
-현재 state를 보고 다음 행동 결정:
-
-- faq → FAQ Tool
-- callback → 이름/전화번호 수집
-- unknown → Vision Trigger
+프론트에서 `http://localhost:8000/chat` 등으로 백엔드를 호출하도록 구성합니다.
 
 ---
 
-### 4️⃣ Tool
+## FAQ 파이프라인 요약
 
-#### FAQ Tool
-```
-운영시간 → 운영시간은 09:00~18:00 입니다
-```
+1. **의도**가 `faq`이면 `FAQ_NODE` 실행.  
+2. **키워드 추출** 프롬프트로 검색 쿼리를 짧게 만든 뒤 `faq_tool`에 전달.  
+3. **Chroma**에서 `max_marginal_relevance_search`(MMR)로 여러 청크를 가져와 문자열로 합침.  
+4. **답변**은 `get_faq_prompt`로 만든 전체 문자열을 `llm.invoke(str)`에 넘겨 생성.
 
-#### Callback Tool
-```
-홍길동 + 전화번호 → 콜백 등록 완료
-```
-
-#### Vision Tool (mock)
-```
-사진을 보내주세요
-```
+검색·임베딩 관련 튜닝은 `app/config.py`의 `FETCH_K`, `MMR_K`, `MMR_LAMBDA`, `EMBED_MODEL`을 조정합니다.
 
 ---
 
-### 5️⃣ Response Node
+## Twilio / 음성 (요약)
 
-최종 사용자 응답 생성
-
----
-
-## 💬 반드시 동작해야 하는 시나리오
+- `app/tools/dialogue_tool.py`에 **`/voice`** (TwiML), **`/media-stream`** (WebSocket) 이 정의되어 있습니다.  
+- ngrok URL 등은 코드 내 TwiML 예시와 맞춰 수정해야 합니다.  
+- 음성 경로의 LLM은 **Gemini**를 사용합니다.
 
 ---
 
-### ✅ 1. FAQ
+## 문제 해결
 
-```
-입력: 운영시간 알려줘
-출력: 운영시간은 09:00~18:00 입니다
-```
+- **`401` / OpenAI 키 불일치**: 시스템 환경 변수와 `.env` 충돌 시 `main.py`의 `load_dotenv(..., override=True)`가 우선합니다. 서버 재시작 후 확인.  
+- **검색 결과가 엉뚱함**: 인덱스 재생성, `EMBED_MODEL` 일치, 청크 크기·`save.py` 분할 설정 검토.  
+- **`Invalid input type dict` (FAQ)**: `ChatOpenAI.invoke()`에 템플릿 dict를 넘기지 말고, 완성된 문자열 또는 `프롬프트 | llm` 체인의 `invoke`를 사용합니다.
 
----
-
-### ✅ 2. Callback
-
-```
-입력: 상담원 연결해줘
-→ 이름 입력 요청
-→ 전화번호 입력 요청
-→ 콜백 등록 완료
-```
-
----
-
-### ✅ 3. Vision
-
-```
-입력: 이거 이상해요
-출력: 사진을 보내주세요 (mock)
-```
-
----
-
-## 🌐 프론트 연결 방법
-
-프론트는 이미 만들어져 있음.
-
-👉 너가 해야 할 것:
-
-### JS에서 API 호출
-
-```
-fetch("http://localhost:8000/chat", {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json"
-  },
-  body: JSON.stringify({ message: userInput })
-})
-```
-
----
-
-## ⚙️ 실행 방법
-
-### 1. 프로젝트 생성
-```
-python setup_project.py
-```
-
-### 2. 백엔드 실행
-```
-cd backend
-pip install -r requirements.txt
-uvicorn main:app --reload
-```
-
----
-
-## 🧠 과제 완료 기준
-
-다음 질문에 답할 수 있으면 완료다:
-
----
-
-### 1. 왜 LangGraph를 썼는가?
----
-
-### 2. 왜 Intent Router가 필요한가?
----
-
-### 3. 왜 Dialogue Manager가 따로 있는가?
----
-
-### 4. 왜 Tool로 분리했는가?
----
-
-### 5. 왜 Vision이 fallback인가?
----
-
-## 🔥 가장 중요한 깨달음
-
-이 과제를 하고 나면 반드시 이 생각이 들어야 한다:
-
-- “아, LLM 하나로 다 하면 안 되는구나”
-- “상태를 보고 다음 행동을 결정해야 하는구나”
-- “그래서 이게 시스템이구나”
-
----
-
-## 📌 최종 한 줄
-
-👉 **“우리는 챗봇을 만드는 게 아니라 상담 흐름을 만드는 것이다”**

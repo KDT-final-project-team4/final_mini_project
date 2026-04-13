@@ -6,7 +6,7 @@ def get_intent_prompt(session_collected_name: str, session_collected_phone: str)
         1. callback: 유저가 전화 요청을 하는 경우 (예: 상담원 연결해줘, 전화 연결해줘).
            또한 이름·전화번호만 알려주며 콜백을 이어가는 경우도 callback입니다
            (예: "홍길동 010-1234-5678", "01012345678입니다", "연락처는 010-1111-2222요").
-        2. faq: 유저가 자주 묻는 질문을 하는 경우 (예: "운영시간이 어떻게 돼?", "반품 정책 알려줘")
+        2. faq: 유저가 자주 묻는 질문을 하는 경우 (예: "이 서비스는 어떤 서비스인가요?")
         3. vision: 유저가 사진과 관련된 질문을 하는 경우 (예: "이 기기의 모델명이 뭐야?", "이 사진 분석해줘.?")
 
         이미 클라이언트/세션에서 넘어온 값(참고용, 없으면 "없음"):
@@ -19,6 +19,8 @@ def get_intent_prompt(session_collected_name: str, session_collected_phone: str)
         유저의 질문:
         {{user_question}}
 
-        위 세 가지 경우에 해당하지 않는 경우 (예: 일반 대화, 모호한 질문 등)는 default로 분류해주세요.
     """
     return prompt
+
+
+# 위 세 가지 경우에 해당하지 않는 경우 (예: 일반 대화, 모호한 질문 등)는 default로 분류해주세요.
