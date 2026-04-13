@@ -28,22 +28,19 @@ def run(state: CallFlowState) -> CallFlowState:
 
     역할
     - 현재 user_input을 faq_tool에 전달한다.
+    - faq_tool 내부에서 mock / rag 모드를 처리한다.
     - 실행 결과를 state['tool_result']에 저장한다.
     """
     logger.info("faq_node.enter state=%s faq_mode=%s", _state_summary(state), settings.FAQ_MODE)
 
     query = (state.get("user_input") or "").strip()
-
-    # 현재는 faq_tool만 구현되어 있으므로 mode는 로그/토글만 우선 반영
-    if settings.FAQ_MODE in {"llm", "rag"}:
-        logger.warning("faq_node mode=%s not wired yet, fallback to faq_tool", settings.FAQ_MODE)
-
     state["tool_result"] = faq_tool(query)
 
     logger.info(
-        "faq_node.exit success=%s tool_name=%s state=%s",
+        "faq_node.exit success=%s tool_name=%s answer_mode=%s state=%s",
         (state.get("tool_result") or {}).get("success"),
         (state.get("tool_result") or {}).get("tool_name"),
+        ((state.get("tool_result") or {}).get("data") or {}).get("mode"),
         _state_summary(state),
     )
     return state

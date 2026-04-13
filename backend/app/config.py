@@ -25,6 +25,15 @@ class Settings:
 
     CORS_ORIGINS: list[str]
 
+    # RAG settings
+    FAQ_DOCS_PATH: str
+    FAQ_CHUNK_SIZE: int
+    FAQ_CHUNK_OVERLAP: int
+    FAQ_RAG_TOP_K: int
+    FAQ_RAG_PERSIST_DIR: str
+    FAQ_RAG_COLLECTION_NAME: str
+    FAQ_EMBED_MODEL: str
+
 
 def load_settings() -> Settings:
     cors_raw = os.getenv(
@@ -36,11 +45,24 @@ def load_settings() -> Settings:
         APP_ENV=os.getenv("APP_ENV", "dev"),
         DEBUG_LOG=_to_bool(os.getenv("DEBUG_LOG"), True),
         LOG_LEVEL=os.getenv("LOG_LEVEL", "INFO").upper(),
+
         FAQ_MODE=os.getenv("FAQ_MODE", "mock").lower(),
         CALLBACK_MODE=os.getenv("CALLBACK_MODE", "mock").lower(),
         VISION_MODE=os.getenv("VISION_MODE", "mock").lower(),
+
         UNKNOWN_FALLBACK=os.getenv("UNKNOWN_FALLBACK", "reply").lower(),
         CORS_ORIGINS=[origin.strip() for origin in cors_raw.split(",") if origin.strip()],
+
+        FAQ_DOCS_PATH=os.getenv("FAQ_DOCS_PATH", "data/faq/faq_documents.json"),
+        FAQ_CHUNK_SIZE=int(os.getenv("FAQ_CHUNK_SIZE", "500")),
+        FAQ_CHUNK_OVERLAP=int(os.getenv("FAQ_CHUNK_OVERLAP", "80")),
+        FAQ_RAG_TOP_K=int(os.getenv("FAQ_RAG_TOP_K", "3")),
+        FAQ_RAG_PERSIST_DIR=os.getenv("FAQ_RAG_PERSIST_DIR", "data/vector_store/faq"),
+        FAQ_RAG_COLLECTION_NAME=os.getenv("FAQ_RAG_COLLECTION_NAME", "faq_documents"),
+        FAQ_EMBED_MODEL=os.getenv(
+            "FAQ_EMBED_MODEL",
+            "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
+        ),
     )
 
 

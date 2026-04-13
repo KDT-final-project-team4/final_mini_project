@@ -1,11 +1,17 @@
 from __future__ import annotations
 
 import os
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from openai import OpenAI as OpenAIClient
+else:
+    OpenAIClient = Any
 
 try:
-    from openai import OpenAI
+    from openai import OpenAI as OpenAIClass
 except ImportError:  # pragma: no cover
-    OpenAI = None  # type: ignore
+    OpenAIClass = None  # type: ignore
 
 try:
     from app.state import CallFlowState
@@ -17,7 +23,7 @@ try:
 except ImportError:  # local test fallback
     from state import CallFlowState
     from config import get_logger
-    from response_prompt import (
+    from prompts.response_prompt import (
         RESPONSE_SYSTEM_PROMPT,
         build_response_user_prompt,
     )
@@ -99,8 +105,8 @@ def _should_use_response_llm(state: CallFlowState) -> bool:
     return True
 
 
-def _get_openai_client() -> OpenAI | None:
-    if OpenAI is None:
+def _get_openai_client() -> OpenAIClient | None:
+    if OpenAIClass is None:
         logger.warning("response_node.openai_sdk_missing fallback_to_rule_based=True")
         return None
 
@@ -109,7 +115,7 @@ def _get_openai_client() -> OpenAI | None:
         logger.warning("response_node.api_key_missing fallback_to_rule_based=True")
         return None
 
-    return OpenAI(api_key=api_key)
+    return OpenAIClass(api_key=api_key)
 
 
 def _get_response_model_name() -> str | None:
@@ -176,7 +182,10 @@ def run(state: CallFlowState) -> CallFlowState:
     logger.info("response_node.enter state=%s", _state_summary(state))
 
     if state.get("final_response"):
-        logger.info("response_node.keep_existing final_response=%s", state.get("final_response"))
+        logger.info(
+            "response_node.keep_existing final_response=%s",
+            state.get("final_response"),
+        )
         return state
 
     next_action = state.get("next_action")
@@ -200,7 +209,10 @@ def run(state: CallFlowState) -> CallFlowState:
 
     if next_action == "finish" and state.get("tool_result") is None:
         state["final_response"] = CALLBACK_CANCEL_MESSAGE
-        logger.info("response_node.finish_without_tool final_response=%s", state.get("final_response"))
+        logger.info(
+            "response_node.finish_without_tool final_response=%s",
+            state.get("final_response"),
+        )
         return state
 
     if _should_use_response_llm(state):
