@@ -10,13 +10,18 @@ load_dotenv(Path(__file__).resolve().parent / ".env", override=True)
 from fastapi import FastAPI
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
-import os
 from app.graph import build_graph
+from app.runtime import init_runtime
 from app.tools.dialogue_tool import router as twilio_voice_router
 
 app = FastAPI()
 
 app.include_router(twilio_voice_router)
+
+
+@app.on_event("startup")
+def on_startup() -> None:
+    init_runtime()
 
 app.add_middleware(
     CORSMiddleware,

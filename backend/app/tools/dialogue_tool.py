@@ -11,28 +11,21 @@ import requests
 from elevenlabs import ElevenLabs
 from fastapi import APIRouter, Request, Response, WebSocket
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_google_genai import ChatGoogleGenerativeAI
+from app.config import (
+    DEEPGRAM_CHANNELS,
+    DEEPGRAM_ENCODING,
+    DEEPGRAM_LANGUAGE,
+    DEEPGRAM_MODEL,
+    DEEPGRAM_SAMPLE_RATE,
+    DIALOGUE_SYSTEM_PROMPT,
+)
+from app.runtime import get_chat_llm
 
 router = APIRouter()
 
 ELEVENLABS_API_KEY = os.getenv("ELEVENLABS_API_KEY")
 # ElevenLabs 대시보드의 Voice ID (기본: Rachel 예시 ID)
 ELEVENLABS_VOICE_ID = os.getenv("ELEVENLABS_VOICE_ID", "21m00Tcm4TlvDq8ikWAM")
-GEMINI_API_KEY = os.getenv("GOOGLE_API_KEY")
-LLM_MODEL = "models/gemini-2.5-flash"
-LLM_SYSTEM_PROMPT = """
-당신은 매우 유능하고 똑똑한 상담원입니다.
-사용자의 질문에 너무 장황하지 않게만 대답해 주세요.
-
-현재 들어온 질문만으로 대답을 생성해 내는 것이 어렵다면
-이전 질문들을 참고하여 대답을 생성해 내세요.
-
-사용자 질문:
-{user_speech}
-
-이전 질문들:
-{previous_speech_data}
-"""
 
 DEEPGRAM_API_KEY = os.getenv("DEEPGRAM_API_KEY")
 
@@ -67,10 +60,10 @@ class CounselContent:
 
 
 def generate_response(transcript, previous_speech_data):
-    llm = ChatGoogleGenerativeAI(model=LLM_MODEL, api_key=GEMINI_API_KEY)
+    llm = get_chat_llm()
     prompt = ChatPromptTemplate.from_messages(
         [
-            ("system", LLM_SYSTEM_PROMPT),
+            ("system", DIALOGUE_SYSTEM_PROMPT),
             ("user", "사용자 질문: {transcript}"),
             ("user", "이전 질문들: {previous_speech_data}"),
         ]
@@ -99,11 +92,11 @@ def get_user_input_to_text(audio_chunk):
 
         url = "https://api.deepgram.com/v1/listen"
         params = {
-            "model": "nova-2",
-            "language": "ko",
-            "encoding": "mulaw",
-            "sample_rate": 8000,
-            "channels": 1,
+            "model": DEEPGRAM_MODEL,
+            "language": DEEPGRAM_LANGUAGE,
+            "encoding": DEEPGRAM_ENCODING,
+            "sample_rate": DEEPGRAM_SAMPLE_RATE,
+            "channels": DEEPGRAM_CHANNELS,
             "punctuate": "true",
         }
         headers = {
@@ -111,7 +104,9 @@ def get_user_input_to_text(audio_chunk):
             "Content-Type": "audio/x-mulaw",
         }
 
-        resp = requests.post(url, params=params, headers=headers, data=audio_chunk, timeout=30)
+        resp = requests.post(
+            url, params=params, headers=headers, data=audio_chunk, timeout=30
+        )
         resp.raise_for_status()
         result = resp.json()
 
@@ -179,7 +174,9 @@ async def handle_media_stream(websocket: WebSocket):
                 counsel_content.user_speech = transcript
                 counsel_content.pre_user_speech.append(transcript)
 
-                agent_response = generate_response(transcript, counsel_content.pre_user_speech)
+                agent_response = generate_response(
+                    transcript, counsel_content.pre_user_speech
+                )
 
                 if agent_response:
                     counsel_content.ai_response = agent_response

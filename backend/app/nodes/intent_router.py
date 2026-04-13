@@ -2,11 +2,10 @@ import re
 from typing import Optional
 
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_openai import ChatOpenAI
 from pydantic import BaseModel, Field
 
-from app.config import FAQ_LLM_MODEL
 from app.prompts.intent_router_prompt import get_intent_prompt
+from app.runtime import get_chat_llm
 
 
 def _normalize_phone(raw: str | None) -> str | None:
@@ -50,20 +49,15 @@ def run(state):
     sn = (
         session_name.strip()
         if isinstance(session_name, str) and session_name.strip()
-        else "없음"
+        else None
     )
     sp = (
         session_phone.strip()
         if isinstance(session_phone, str) and session_phone.strip()
-        else "없음"
+        else None
     )
 
-    # ChatGoogleGenerativeAI(Gemini)에 gpt-4o-mini 같은 OpenAI 모델명을 넣으면 API 오류가 납니다.
-    llm = ChatOpenAI(
-        model=FAQ_LLM_MODEL,
-        temperature=0,
-        max_retries=2,
-    )
+    llm = get_chat_llm()
 
     # 사용자 질문 의도 판단 후 state 업데이트
     structured_llm = llm.with_structured_output(RouterOutput)

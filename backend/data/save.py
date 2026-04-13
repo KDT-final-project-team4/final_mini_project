@@ -11,12 +11,16 @@ from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_community.vectorstores import Chroma
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
-from app.config import EMBED_MODEL
+from app.config import (
+    CHROMA_COLLECTION,
+    CHROMA_DIR,
+    CHUNK_OVERLAP,
+    CHUNK_SEPARATORS,
+    CHUNK_SIZE,
+    EMBED_MODEL,
+)
 
 PDF_DIR = Path(__file__).resolve().parent
-# FAQ용(chroma_db)과 구분해 PDF 전용 저장 경로 사용
-CHROMA_DIR = Path(__file__).resolve().parent / "chroma_db"
-COLLECTION_NAME = "pdf_documents"
 
 
 def _normalize_pdf_text(text: str) -> str:
@@ -46,9 +50,9 @@ def save_pdfs_to_chroma():
     raw_docs = load_pdf_documents()
 
     text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=1000,
-        chunk_overlap=100,
-        separators=["\n\n", " ", ""],
+        chunk_size=CHUNK_SIZE,
+        chunk_overlap=CHUNK_OVERLAP,
+        separators=CHUNK_SEPARATORS,
     )
     print("문서 분할 중...")
     splits = text_splitter.split_documents(raw_docs)
@@ -63,7 +67,7 @@ def save_pdfs_to_chroma():
         splits,
         embeddings,
         persist_directory=str(CHROMA_DIR),
-        collection_name=COLLECTION_NAME,
+        collection_name=CHROMA_COLLECTION,
     )
     print("Chroma DB 저장 완료")
 

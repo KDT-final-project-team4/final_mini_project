@@ -1,8 +1,7 @@
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_openai import ChatOpenAI
 
-from app.config import FAQ_LLM_MODEL
 from app.prompts.faq_prompt import get_faq_prompt, get_keyword_prompt
+from app.runtime import get_chat_llm
 from app.tools.faq_tool import faq_tool
 
 
@@ -10,11 +9,7 @@ from app.tools.faq_tool import faq_tool
 def run(state):
     user_question = state.get("user_input")
 
-    llm = ChatOpenAI(
-        model=FAQ_LLM_MODEL,
-        temperature=0,
-        max_retries=2,
-    )
+    llm = get_chat_llm()
 
     # 키워드 추출
     keywords = get_keyword_prompt(user_question)

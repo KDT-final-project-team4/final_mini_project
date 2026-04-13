@@ -18,31 +18,28 @@ def _missing_callback_message(state: dict) -> str:
             "예: 홍길동 010-1234-5678 처럼 한 줄로 보내 주셔도 됩니다."
         )
     if not name:
-        return "성함을 알려 주세요. (이미 전화번호를 보내 주셨다면 성함만 입력해 주세요.)"
-    return "휴대폰 번호를 알려 주세요. (예: 01012345678 또는 010-1234-5678)"
- 
+        return (
+            "성함을 알려 주세요. (이미 전화번호를 보내 주셨다면 성함만 입력해 주세요.)"
+        )
+    if not phone:
+        return "휴대폰 번호를 알려 주세요. (예: 01012345678 또는 010-1234-5678)"
+    return None
 
-def run(state): 
-    first_dialogue = state.get("tool_result")
 
-    # CALLBACK_NODE에서만 들어옴. tool_result가 없으면 이름/전화 미수집(또는 도구 실패)
-    if not first_dialogue:
-        text = _missing_callback_message(state)
-        publish_voice_say(text)
-    else:
-        publish_voice_say(str(first_dialogue).strip())
-        text = str(first_dialogue).strip()
+def run(state):
 
-    # 선택: 로컬에서 TwiML이 나오는지 확인만 할 때 (Twilio 통화 트리거 아님)
-    if os.getenv("PING_VOICE_WEBHOOK", "").lower() in ("1", "true", "yes"):
-        base = os.getenv("API_BASE_URL", "http://localhost:8000").rstrip("/")
-        qs = urlencode({"say_text": text})
-        try:
-            requests.get(f"{base}/voice?{qs}", timeout=5)
-            print(f"TwiML 요청 성공: {base}/voice?{qs}")
-        except requests.RequestException:
-            pass
+    is_missing = _missing_callback_message(state)
+    print(f"is_missing: {is_missing}")
+
+    if is_missing is not None:
+        return {"tool_result": is_missing}
 
     return {
-        "final_response": text,
+        "tool_result": state.get("tool_result"),
+        "collected_name": state.get("collected_name"),
+        "collected_phone": state.get("collected_phone"),
+        "final_response": state.get("final_response"),
+        "user_input": state.get("user_input"),
+        "intent": state.get("intent"),
+        "next_action": state.get("next_action"),
     }

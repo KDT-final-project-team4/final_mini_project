@@ -1,7 +1,7 @@
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_google_genai import ChatGoogleGenerativeAI
 
 from app.prompts.response_prompt import get_response_prompt
+from app.runtime import get_chat_llm
 
 # response_node node
 
@@ -12,13 +12,7 @@ def run(state):
     intent = state.get("intent")
     tool_result = state.get("tool_result")
 
-    llm = ChatGoogleGenerativeAI(
-        model="models/gemini-2.5-pro",
-        temperature=0,
-        max_tokens=None,
-        timeout=None,
-        max_retries=2,
-    )
+    llm = get_chat_llm()
 
     prompt = get_response_prompt()
     prompt_template = ChatPromptTemplate.from_template(prompt)
